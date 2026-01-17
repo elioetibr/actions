@@ -1,0 +1,119 @@
+name: CI
+
+permissions:
+  contents: write
+  pull-requests: write
+  id-token: write  # Required for AWS OIDC authentication
+
+on:
+  push:
+    branches:
+      - '**'
+  pull_request:
+    branches: [main]
+  release:
+    types: [published]
+  workflow_dispatch:
+
+# Concurrency control to implement build queue
+# This ensures:
+# 1. Only one workflow runs at a time for the same PR or branch
+# 2. For main branch: new pushes are queued (not canceled)
+# 3. For PRs: new pushes cancel previous runs to save resources
+# 4. Different PRs can run in parallel
+concurrency:
+  # For main branch: queue builds but don't cancel in-progress ones
+  # For PRs: cancel previous builds for the same PR
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref_name }}
+  cancel-in-progress: ${{ github.ref_name != github.event.repository.default_branch }}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: 'yarn'
+
+      - name: Install dependencies
+        run: yarn install --immutable --immutable-cache
+
+      - name: Run linter
+        run: yarn lint
+
+      - name: Run type check
+        run: yarn typecheck
+
+      - name: Run tests
+        run: yarn test --coverage
+
+      - name: Build
+        run: yarn build
+
+      - name: Upload coverage
+        uses: codecov/codecov-action@v4
+        with:
+          files: ./coverage/lcov.info
+          fail_ci_if_error: false
+
+  release:
+    runs-on: ubuntu-latest
+    if: ${{ success() && github.event_name == 'push' || github.event_name == 'release' || github.ref_name == github.event.repository.default_branch }}
+    needs: [build]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: 'yarn'
+
+      - name: Install dependencies
+        run: yarn install --immutable --immutable-cache
+
+      - name: Build
+        run: yarn build
+
+      - name: Get version
+        id: version
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/}
+          MAJOR=$(echo $VERSION | cut -d. -f1)
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "major=$MAJOR" >> $GITHUB_OUTPUT
+
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Push to release branch
+        run: |
+          RELEASE_BRANCH="releases/${{ steps.version.outputs.major }}"
+
+          # Create a new branch from the current tag
+          git checkout -B $RELEASE_BRANCH
+
+          # Add dist to git (temporarily override .gitignore)
+          git add -f dist/
+
+          # Commit the built dist
+          git commit -m "Build dist for ${{ steps.version.outputs.version }}"
+
+          # Push to release branch (create or update)
+          git push origin $RELEASE_BRANCH --force
+
+      - name: Update major version tag
+        run: |
+          git tag -fa ${{ steps.version.outputs.major }} -m "Update ${{ steps.version.outputs.major }} tag"
+          git push origin ${{ steps.version.outputs.major }} --force

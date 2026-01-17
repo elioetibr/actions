@@ -1,0 +1,127 @@
+name: Build and Push Multi-Architecture Docker Image
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      semver: ${{ steps.semver.outputs.version }}
+    steps:
+      - name: Get semantic version
+        id: semver
+        run: echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+  amd64:
+    runs-on: ubuntu-latest
+    needs: prepare
+    outputs:
+      tags: ${{ steps.build.outputs.tags }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to ECR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ secrets.ECR_REGISTRY }}
+          username: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          password: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+      - name: Build and push AMD64 image
+        id: build
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          platforms: linux/amd64
+          tags: |
+            ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }}:${{ needs.prepare.outputs.semver }}-amd64
+          labels: |
+            org.opencontainers.image.source=${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+
+      - name: Output tags
+        run: |
+          echo "${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }}:${{ needs.prepare.outputs.semver }}-amd64" >> $GITHUB_OUTPUT
+
+  arm64:
+    runs-on: ubuntu-latest
+    needs: prepare
+    outputs:
+      tags: ${{ steps.build.outputs.tags }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to ECR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ secrets.ECR_REGISTRY }}
+          username: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          password: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+      - name: Build and push ARM64 image
+        id: build
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          platforms: linux/arm64
+          tags: |
+            ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }}:${{ needs.prepare.outputs.semver }}-arm64
+          labels: |
+            org.opencontainers.image.source=${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+
+      - name: Output tags
+        run: |
+          echo "${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }}:${{ needs.prepare.outputs.semver }}-arm64" >> $GITHUB_OUTPUT
+
+  create-manifest:
+    runs-on: ubuntu-latest
+    needs: [ prepare, amd64, arm64 ]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to ECR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ secrets.ECR_REGISTRY }}
+          username: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          password: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+      - name: Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }}
+          tags: |
+            type=semver,pattern={{version}},value=${{ needs.prepare.outputs.semver }}
+            type=semver,pattern={{major}}.{{minor}},value=${{ needs.prepare.outputs.semver }}
+            type=semver,pattern={{major}},value=${{ needs.prepare.outputs.semver }}
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+
+      - name: Create and push manifest
+        uses: ./
+        with:
+          meta_tags: ${{ steps.meta.outputs.tags }}
+          meta_annotations: ${{ steps.meta.outputs.annotations }}
+          amd64_tags: ${{ needs.amd64.outputs.tags }}
+          arm64_tags: ${{ needs.arm64.outputs.tags }}
+          ecr_registry: ${{ secrets.ECR_REGISTRY }}
+          ecr_repository: ${{ secrets.ECR_REPOSITORY }}
+          semver: ${{ needs.prepare.outputs.semver }}
