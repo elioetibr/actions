@@ -1,0 +1,198 @@
+name: CI
+
+permissions:
+  contents: write
+  pull-requests: write
+  id-token: write
+
+on:
+  push:
+    branches:
+      - '**'
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+# Concurrency control to implement build queue
+# This ensures:
+# 1. Only one workflow runs at a time for the same PR or branch
+# 2. For main branch: new pushes are queued (not canceled)
+# 3. For PRs: new pushes cancel previous runs to save resources
+# 4. Different PRs can run in parallel
+concurrency:
+  # For main branch: queue builds but don't cancel in-progress ones
+  # For PRs: cancel previous builds for the same PR
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref_name }}
+  cancel-in-progress: ${{ github.ref_name != github.event.repository.default_branch }}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: 'yarn'
+
+      - name: Install dependencies
+        run: yarn install --immutable --immutable-cache
+
+      - name: Run linter
+        run: yarn lint
+
+      - name: Run type check
+        run: yarn typecheck
+
+      - name: Run tests
+        run: yarn test --coverage
+
+      - name: Build
+        run: yarn build
+
+      - name: Upload coverage
+        uses: codecov/codecov-action@v4
+        with:
+          files: ./coverage/lcov.info
+          fail_ci_if_error: false
+
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+    if: success() && github.event_name == 'push' && github.ref_name == github.event.repository.default_branch
+    needs: [build]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Cache GitVersion tool
+        uses: actions/cache@v4
+        with:
+          path: |
+            /opt/hostedtoolcache/GitVersion.Tool
+            ~/.dotnet/tools
+          key: ${{ runner.os }}-${{ runner.arch }}-gitversion-${{ inputs.version-spec }}
+          restore-keys: |
+            ${{ runner.os }}-${{ runner.arch }}-gitversion-${{ inputs.version-spec }}
+            ${{ runner.os }}-${{ runner.arch }}-gitversion-
+
+      - name: Install GitVersion
+        uses: gittools/actions/gitversion/setup@v4.2.0
+        with:
+          versionSpec: ${{ vars.GITVERSION_SPEC || '6.x' }}
+
+      - name: Calculate Semantic Version
+        id: gitversion
+        uses: gittools/actions/gitversion/execute@v4.2.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: 'yarn'
+
+      - name: Install dependencies
+        run: yarn install --immutable --immutable-cache
+
+      - name: Build
+        run: yarn build
+
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Push to release branch
+        run: |
+          RELEASE_BRANCH="releases/v${{ steps.gitversion.outputs.MajorMinorPatch }}"
+
+          # Create a new branch from the current commit
+          git checkout -B $RELEASE_BRANCH
+
+          # Add dist to git (temporarily override .gitignore)
+          git add -f dist/
+
+          # Commit the built dist
+          git commit -m "Build dist for v${{ steps.gitversion.outputs.MajorMinorPatch }}"
+
+          # Push to release branch (create or update)
+          git push origin $RELEASE_BRANCH --force
+
+      - name: Install git-cliff
+        uses: kenji-miyake/setup-git-cliff@v2
+
+      - name: Generate changelog
+        id: changelog
+        run: |
+          # Get the previous tag for changelog generation
+          PREVIOUS_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+
+          if [ -n "$PREVIOUS_TAG" ]; then
+            echo "Generating changelog from $PREVIOUS_TAG to HEAD"
+            git cliff "$PREVIOUS_TAG"..HEAD --tag v${{ steps.gitversion.outputs.MajorMinorPatch }} -o CHANGELOG.md
+          else
+            echo "No previous tag found, generating full changelog"
+            git cliff --tag v${{ steps.gitversion.outputs.MajorMinorPatch }} -o CHANGELOG.md
+          fi
+
+          # Also generate release notes (just the latest version)
+          if [ -n "$PREVIOUS_TAG" ]; then
+            git cliff "$PREVIOUS_TAG"..HEAD --tag v${{ steps.gitversion.outputs.MajorMinorPatch }} --strip header -o RELEASE_NOTES.md
+          else
+            git cliff --tag v${{ steps.gitversion.outputs.MajorMinorPatch }} --strip all -o RELEASE_NOTES.md
+          fi
+
+          echo "Release notes:"
+          cat RELEASE_NOTES.md
+
+      - name: Tag
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          function tag() {
+            VERSION=$1
+            echo "Releasing Version: ${VERSION}"
+            TAG_EXISTS=$(git ls-remote -q --tags | grep -q "refs/tags/${VERSION}$" && echo true || echo false)
+            if [[ "${TAG_EXISTS}" == true ]]; then
+              HAS_RELEASE=$(gh release list --json tagName -q '.[].tagName' | grep -E "^(${VERSION})$" && echo true || echo false)
+              if [[ "${HAS_RELEASE}" == true ]]; then
+                gh release delete --yes ${VERSION}
+              fi
+              git push origin --delete ${VERSION}
+              git tag -d ${VERSION}
+            fi
+
+            git tag -a ${VERSION} -m "chore: Release Version ${VERSION}"
+            git push -f --tags --follow-tags
+          }
+
+          # Create full version tag (v1.2.3)
+          tag v${{ steps.gitversion.outputs.MajorMinorPatch }}
+
+          # Create/update major.minor tag (v1.2)
+          tag v${{ steps.gitversion.outputs.Major }}.${{ steps.gitversion.outputs.Minor }}
+
+          # Create/update major tag (v1)
+          tag v${{ steps.gitversion.outputs.Major }}
+
+      - name: Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Clean up any draft releases
+          gh release list | grep Draft | awk '{print $1}' | while read -r draft; do
+            echo "Removing Draft Release: ${draft}"
+            gh release delete --yes "${draft}"
+          done
+
+          # Create the release with conventional commits changelog
+          gh release create v${{ steps.gitversion.outputs.MajorMinorPatch }} \
+            --notes-file RELEASE_NOTES.md \
+            --verify-tag \
+            --latest
