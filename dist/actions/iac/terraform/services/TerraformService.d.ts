@@ -1,0 +1,85 @@
+import { ITerraformService, TerraformCommand } from '../interfaces';
+/**
+ * Main service implementation for Terraform operations
+ * Implements ITerraformService with fluent configuration methods
+ */
+export declare class TerraformService implements ITerraformService {
+    private _command;
+    private _workingDirectory;
+    private readonly _executor;
+    private readonly _environment;
+    private readonly _variables;
+    private readonly _varFiles;
+    private readonly _backendConfig;
+    private readonly _targets;
+    private _autoApprove;
+    private _dryRun;
+    private _noColor;
+    private _compactWarnings;
+    private _refresh;
+    private _reconfigure;
+    private _migrateState;
+    private _planFile;
+    private _outFile;
+    private _parallelism;
+    private _lockTimeout;
+    private readonly argumentBuilder;
+    private readonly stringFormatter;
+    constructor(command: TerraformCommand, workingDirectory?: string);
+    get command(): TerraformCommand;
+    get executor(): string;
+    get workingDirectory(): string;
+    get environment(): ReadonlyMap<string, string>;
+    get variables(): ReadonlyMap<string, string>;
+    get varFiles(): readonly string[];
+    get backendConfig(): ReadonlyMap<string, string>;
+    get targets(): readonly string[];
+    get autoApprove(): boolean;
+    get dryRun(): boolean;
+    get planFile(): string | undefined;
+    get outFile(): string | undefined;
+    get noColor(): boolean;
+    get compactWarnings(): boolean;
+    get parallelism(): number | undefined;
+    get lockTimeout(): string | undefined;
+    get refresh(): boolean;
+    get reconfigure(): boolean;
+    get migrateState(): boolean;
+    get useStringList(): boolean;
+    get stringList(): string[];
+    setCommand(command: TerraformCommand): this;
+    setWorkingDirectory(directory: string): this;
+    addEnvironmentVariable(key: string, value: string): this;
+    removeEnvironmentVariable(key: string): this;
+    clearEnvironmentVariables(): this;
+    addVariable(key: string, value: string): this;
+    removeVariable(key: string): this;
+    clearVariables(): this;
+    addVarFile(filePath: string): this;
+    removeVarFile(filePath: string): this;
+    clearVarFiles(): this;
+    addBackendConfig(key: string, value: string): this;
+    removeBackendConfig(key: string): this;
+    clearBackendConfig(): this;
+    addTarget(target: string): this;
+    removeTarget(target: string): this;
+    clearTargets(): this;
+    setAutoApprove(enabled: boolean): this;
+    setDryRun(enabled: boolean): this;
+    setPlanFile(filePath: string | undefined): this;
+    setOutFile(filePath: string | undefined): this;
+    setNoColor(enabled: boolean): this;
+    setCompactWarnings(enabled: boolean): this;
+    setParallelism(level: number | undefined): this;
+    setLockTimeout(timeout: string | undefined): this;
+    setRefresh(enabled: boolean): this;
+    setReconfigure(enabled: boolean): this;
+    setMigrateState(enabled: boolean): this;
+    toCommandArgs(): string[];
+    buildCommand(): string[];
+    toString(): string;
+    toStringMultiLineCommand(): string;
+    reset(): this;
+    clone(): ITerraformService;
+}
+//# sourceMappingURL=TerraformService.d.ts.map
