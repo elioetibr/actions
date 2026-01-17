@@ -1,0 +1,76 @@
+name: 'Docker BuildX ImageTools Manifest Creator'
+description: 'Creates multi-architecture Docker images Manifest using buildx imagetools'
+author: 'Elio Severo Junior <elio@elio.eti.br>'
+branding:
+  icon: 'layers'
+  color: 'blue'
+
+inputs:
+  ecrRegistry:
+    description: 'ECR registry name'
+    required: true
+  ecrRepository:
+    description: 'ECR repository name'
+    required: true
+  amd64MetaTags:
+    description: 'AMD64 image tags to include in the manifest'
+    required: true
+  arm64MetaTags:
+    description: 'ARM64 image tags to include in the manifest'
+    required: true
+  manifestMetaTags:
+    description: 'Image tags for the manifest'
+    required: true
+  manifestMetaAnnotations:
+    description: 'Image annotations for the manifest'
+    required: true
+  semVer:
+    description: 'Semantic version for the final image'
+    required: true
+  dryRun:
+    description: 'Dry Run Mode'
+    required: false
+    default: 'false'
+
+outputs:
+  amd64MetaTags:
+    description: 'AMD64 image tags used in the manifest'
+  archTags:
+    description: 'Architecture-specific tags for the images'
+  arm64MetaTags:
+    description: 'ARM64 image tags used in the manifest'
+  buildXArgs:
+    description: 'Arguments passed to Docker BuildX'
+  dryRun:
+    description: 'Indicates if action was executed in dry run mode'
+  ecrRegistry:
+    description: 'ECR registry name used for the images'
+  ecrRepository:
+    description: 'ECR repository name used for the images'
+  fullVersion:
+    description: 'Complete semantic version with any suffix'
+  imageUri:
+    description: 'Complete URI of the created image'
+  inspectArgsDefault:
+    description: 'Default arguments for image inspection'
+  major:
+    description: 'Major version number from semantic version'
+  manifestMetaAnnotations:
+    description: 'Annotations applied to the manifest'
+  manifestMetaTags:
+    description: 'Tags applied to the manifest'
+  metaAnnotations:
+    description: 'Processed annotations for the manifest'
+  metaTags:
+    description: 'Processed tags for the manifest'
+  minor:
+    description: 'Minor version number from semantic version'
+  patch:
+    description: 'Patch version number from semantic version'
+  version:
+    description: 'Semantic version without suffix'
+  versionSuffix:
+    description: 'Suffix portion of the semantic version if present'
+runs:
+  using: 'node20'
+  main: 'dist/index.js'

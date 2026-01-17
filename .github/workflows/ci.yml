@@ -1,0 +1,130 @@
+name: CI
+
+permissions:
+  contents: write
+  pull-requests: write
+  id-token: write
+
+on:
+  push:
+    branches:
+      - '**'
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+# Concurrency control to implement build queue
+# This ensures:
+# 1. Only one workflow runs at a time for the same PR or branch
+# 2. For main branch: new pushes are queued (not canceled)
+# 3. For PRs: new pushes cancel previous runs to save resources
+# 4. Different PRs can run in parallel
+concurrency:
+  # For main branch: queue builds but don't cancel in-progress ones
+  # For PRs: cancel previous builds for the same PR
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref_name }}
+  cancel-in-progress: ${{ github.ref_name != github.event.repository.default_branch }}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: 'yarn'
+
+      - name: Install dependencies
+        run: yarn install --immutable --immutable-cache
+
+      - name: Run linter
+        run: yarn lint
+
+      - name: Run type check
+        run: yarn typecheck
+
+      - name: Run tests
+        run: yarn test --coverage
+
+      - name: Build
+        run: yarn build
+
+      - name: Upload coverage
+        uses: codecov/codecov-action@v4
+        with:
+          files: ./coverage/lcov.info
+          fail_ci_if_error: false
+
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+    if: success() && github.event_name == 'push' && github.ref_name == github.event.repository.default_branch
+    needs: [build]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Cache GitVersion tool
+        uses: actions/cache@v4
+        with:
+          path: |
+            /opt/hostedtoolcache/GitVersion.Tool
+            ~/.dotnet/tools
+          key: ${{ runner.os }}-${{ runner.arch }}-gitversion-${{ inputs.version-spec }}
+          restore-keys: |
+            ${{ runner.os }}-${{ runner.arch }}-gitversion-${{ inputs.version-spec }}
+            ${{ runner.os }}-${{ runner.arch }}-gitversion-
+
+      - name: Install GitVersion
+        uses: gittools/actions/gitversion/setup@v4.2.0
+        with:
+          versionSpec: ${{ vars.GITVERSION_SPEC || '6.x' }}
+
+      - name: Calculate Semantic Version
+        id: gitversion
+        uses: gittools/actions/gitversion/execute@v4.2.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: 'yarn'
+
+      - name: Install dependencies
+        run: yarn install --immutable --immutable-cache
+
+      - name: Build
+        run: yarn build
+
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Push to release branch
+        run: |
+          RELEASE_BRANCH="releases/v${{ steps.gitversion.outputs.major }}"
+
+          # Create a new branch from the current tag
+          git checkout -B $RELEASE_BRANCH
+
+          # Add dist to git (temporarily override .gitignore)
+          git add -f dist/
+
+          # Commit the built dist
+          git commit -m "Build dist for v${{ steps.gitversion.outputs.semVer }}"
+
+          # Push to release branch (create or update)
+          git push origin $RELEASE_BRANCH --force
+
+      - name: Update major version tag
+        run: |
+          git tag -fa v${{ steps.gitversion.outputs.major }} -m "Update v${{ steps.gitversion.outputs.major }} tag"
+          git push origin v${{ steps.gitversion.outputs.major }} --force
