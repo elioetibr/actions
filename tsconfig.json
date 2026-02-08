@@ -2,8 +2,8 @@
   "compilerOptions": {
     "target": "ES2023",
     "lib": ["ES2023"],
-    "module": "commonjs",
-    "moduleResolution": "node",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
     "moduleDetection": "auto",
     "useDefineForClassFields": true,
     "skipLibCheck": true,
@@ -40,6 +40,8 @@
     "dist",
     "node_modules",
     "coverage",
+    "src/agents",
+    "src/tools",
     "**/__tests__/**/*",
     "**/*.test.ts",
     "**/*.spec.ts"

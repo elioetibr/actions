@@ -9,6 +9,9 @@ const globals = require('globals');
 module.exports = [
   js.configs.recommended,
   {
+    ignores: ['dist/**', 'coverage/**', 'node_modules/**', 'src/agents/**', 'src/tools/**'],
+  },
+  {
     files: ['**/*.{js,mjs,cjs,ts}'],
     languageOptions: {
       parser: tsparser,

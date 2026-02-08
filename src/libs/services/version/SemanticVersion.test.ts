@@ -719,5 +719,35 @@ describe('SemanticVersionBuilder', () => {
       expect(service.semVerInfo.minor).toBe('2');
       expect(service.semVerInfo.patch).toBe('3');
     });
+
+    it('should work with createSemVerService from SemanticVersion module', () => {
+      const { createSemVerService } = require('./SemanticVersion');
+      const provider = createMockProvider('2.5.8');
+      const service = createSemVerService(provider);
+
+      expect(service.semVerInfo.version).toBe('2.5.8');
+      expect(service.semVerInfo.major).toBe('2');
+    });
+  });
+
+  describe('custom regex edge cases', () => {
+    it('should parse valid version with custom regex through custom branch', () => {
+      const customRegex = /^(\d+)\.(\d+)\.(\d+)$/;
+      const service = new SemanticVersionService(
+        createMockProvider('4.5.6'),
+        { customRegex }
+      );
+      expect(service.semVerInfo.version).toBe('4.5.6');
+    });
+
+    it('should reject non-numeric version components with custom regex', () => {
+      const customRegex = /^([^.]+)\.([^.]+)\.([^.]+)$/;
+      expect(() => {
+        new SemanticVersionService(
+          createMockProvider('1a.2b.3c'),
+          { customRegex }
+        );
+      }).toThrow('Given Semantic Version is not valid');
+    });
   });
 });

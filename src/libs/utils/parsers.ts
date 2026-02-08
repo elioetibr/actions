@@ -1,6 +1,40 @@
+import * as core from '@actions/core';
 import { catchErrorAndSetFailed } from './handlers';
 import { IStringParser } from '../interfaces';
 import { limitInputSize, removeQuotes, sanitizeInput } from './common';
+
+/**
+ * Parses a comma-separated string into a trimmed, non-empty string array.
+ * @param input - The comma-separated string to parse
+ * @returns Array of trimmed, non-empty strings
+ */
+export function parseCommaSeparated(input: string): string[] {
+  if (!input || input.trim() === '') {
+    return [];
+  }
+  return input
+    .split(',')
+    .map(item => item.trim())
+    .filter(item => item.length > 0);
+}
+
+/**
+ * Parses a JSON string into a key-value object.
+ * Logs a warning and returns an empty object on parse failure.
+ * @param input - The JSON string to parse
+ * @returns Parsed object or empty object on failure
+ */
+export function parseJsonObject(input: string): Record<string, string> {
+  if (!input || input.trim() === '' || input.trim() === '{}') {
+    return {};
+  }
+  try {
+    return JSON.parse(input);
+  } catch {
+    core.warning(`Failed to parse JSON: ${input}`);
+    return {};
+  }
+}
 
 /**
  * Parses JSON array strings into string arrays.

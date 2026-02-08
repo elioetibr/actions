@@ -120,6 +120,20 @@ describe('GitHubContextBuilderFactory', () => {
       expect(builder.graphqlUrl).toBe('');
     });
 
+    test('handles missing eventName, sha, and ref with defaults', () => {
+      const minimalContext = createMockContext({
+        eventName: undefined,
+        sha: undefined,
+        ref: undefined,
+      });
+
+      const builder = GitHubContextBuilderFactory.createFromContext(minimalContext);
+
+      expect(builder.eventName).toBe('');
+      expect(builder.sha).toBe('');
+      expect(builder.ref).toBe('');
+    });
+
     test('handles missing issue and repo with defaults', () => {
       const contextWithoutIssueRepo = createMockContext({
         issue: undefined,

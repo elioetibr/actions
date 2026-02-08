@@ -281,10 +281,32 @@ describe('StringFormatter', () => {
 
     it('should handle values with only whitespace', () => {
       metaDataManager.addMetaData('--spaces', '   ');
-      
+
       const result = stringFormatter.toString();
-      
+
       expect(result).toContain('"--spaces" => "   "');
+    });
+
+    it('should handle single undefined value in metadata via nullish coalescing', () => {
+      // Create a mock metadata manager that returns [undefined] to exercise ?? '' branch
+      const mockManager = {
+        addMetaData: jest.fn().mockReturnThis(),
+        setMetaData: jest.fn().mockReturnThis(),
+        getMetaData: jest.fn().mockReturnValue([]),
+        getFirstMetaData: jest.fn().mockReturnValue(undefined),
+        removeMetaData: jest.fn().mockReturnThis(),
+        clearMetaData: jest.fn().mockReturnThis(),
+        getAllMetaData: jest.fn().mockReturnValue(new Map([['--tag', [undefined as unknown as string]]])),
+        getSize: jest.fn().mockReturnValue(1),
+        entries: jest.fn().mockReturnValue(new Map([['--tag', [undefined as unknown as string]]]).entries()),
+      };
+
+      const formatter = new StringFormatter(
+        'TestClass', 'create', 'docker', ['buildx', 'imagetools'], false, mockManager
+      );
+
+      const result = formatter.toString();
+      expect(result).toContain('"--tag" => ""');
     });
   });
 });

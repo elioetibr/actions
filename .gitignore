@@ -1993,4 +1993,3 @@ $RECYCLE.BIN/
 
 ### Always Add ###
 !src/actions/docker/buildx/build
-dist/

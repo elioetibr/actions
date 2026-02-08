@@ -1,5 +1,5 @@
 // Example usage of DockerBuildXImageToolsService
-import { DockerBuildXImageToolsService } from '../index';
+import { DockerBuildXImageToolsService } from '../services';
 import { DockerBuildXImageToolsBuilderFactoryExamples } from './DockerBuildXImageToolsBuilderFactory.examples';
 
 function main(): void {

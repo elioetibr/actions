@@ -2,35 +2,7 @@ import * as core from '@actions/core';
 import { exec } from '@actions/exec';
 import { TerragruntBuilder } from './TerragruntBuilder';
 import { TerragruntCommand } from './interfaces';
-import { catchErrorAndSetFailed, handleSuccess } from '../../../libs/utils';
-
-/**
- * Parse a comma-separated string into an array
- */
-function parseCommaSeparated(input: string): string[] {
-  if (!input || input.trim() === '') {
-    return [];
-  }
-  return input
-    .split(',')
-    .map(item => item.trim())
-    .filter(item => item.length > 0);
-}
-
-/**
- * Parse a JSON string into an object
- */
-function parseJsonObject(input: string): Record<string, string> {
-  if (!input || input.trim() === '' || input.trim() === '{}') {
-    return {};
-  }
-  try {
-    return JSON.parse(input);
-  } catch {
-    core.warning(`Failed to parse JSON: ${input}`);
-    return {};
-  }
-}
+import { catchErrorAndSetFailed, handleSuccess, parseCommaSeparated, parseJsonObject } from '../../../libs/utils';
 
 /**
  * Main action runner for Terragrunt

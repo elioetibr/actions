@@ -13,6 +13,9 @@ module.exports = {
         '!src/**/*.barrel.{ts,js}',
         '!src/**/*.exports.{ts,js}',
         '!src/**/exports/**',
+        // Exclude tools directory (built separately with Vite)
+        '!src/tools/**',
+        '!src/agents/**',
         // Exclude other non-logic files
         '!src/**/*.examples.{ts,tsx,js,jsx}',
         '!src/**/*.d.ts',
@@ -24,6 +27,8 @@ module.exports = {
         '/node_modules/',
         '/scripts/',
         '/dist/',
+        '/tools/',
+        '/agents/',
         '\\.barrel\\.(ts|js)$',
         '/exports\\.(ts|js)$',
         '/barrel\\.(ts|js)$',
@@ -33,10 +38,10 @@ module.exports = {
     coverageReporters: ['text', 'lcov', 'html'],
     coverageThreshold: {
       global: {
-        branches: 90,
-        functions: 90,
-        lines: 90,
-        statements: 90,
+        branches: 95,
+        functions: 95,
+        lines: 95,
+        statements: 95,
       },
     },
     roots: ['<rootDir>/src'],

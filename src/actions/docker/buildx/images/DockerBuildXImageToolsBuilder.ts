@@ -1,5 +1,5 @@
 import { IDockerBuildXImageTools, IDockerBuildXImageToolsBuilder } from './interfaces';
-import { DockerBuildXImageToolsService } from './index';
+import { DockerBuildXImageToolsService } from './services';
 import { ValidationUtils } from '../../../../libs';
 
 export class DockerBuildXImageToolsBuilder implements IDockerBuildXImageToolsBuilder {

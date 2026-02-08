@@ -1,6 +1,8 @@
 import * as core from '@actions/core';
 import { Exec as docker } from '@docker/actions-toolkit/lib/exec';
 import {
+  generateSourceImageTagsAndPull,
+  generateTargetManifestImageTags,
   limitInputSize,
   processManifestImages,
   processSourceImages,
@@ -280,6 +282,18 @@ describe('common utils', () => {
       const mockImageTags = ['image1:tag1'];
       await processSourceImages(mockImageTags, false);
       expect(handleError).toBeDefined();
+    });
+  });
+
+  describe('deprecated wrapper functions', () => {
+    it('generateTargetManifestImageTags delegates to processManifestImages', async () => {
+      const result = await generateTargetManifestImageTags('--tag', ['tag1', 'tag2']);
+      expect(result).toEqual(['--tag', '"tag1"', '--tag', '"tag2"']);
+    });
+
+    it('generateSourceImageTagsAndPull delegates to processSourceImages', async () => {
+      const result = await generateSourceImageTagsAndPull(['image:tag1'], true);
+      expect(result).toEqual(['"image:tag1"']);
     });
   });
 });

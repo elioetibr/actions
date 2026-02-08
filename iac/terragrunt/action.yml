@@ -69,7 +69,6 @@ inputs:
     description: 'Enable state migration for init'
     required: false
     default: 'false'
-  # Terragrunt-specific inputs
   terragrunt-config:
     description: 'Path to terragrunt.hcl configuration file'
     required: false
@@ -159,4 +158,4 @@ outputs:
 
 runs:
   using: 'node20'
-  main: '../../../dist/actions/iac/terragrunt/index.js'
+  main: 'main.mjs'

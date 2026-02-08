@@ -32,32 +32,44 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version-file: .nvmrc
-          cache: 'yarn'
+          cache: 'pnpm'
 
       - name: Install dependencies
-        run: yarn install --immutable --immutable-cache
+        run: pnpm install --frozen-lockfile
 
       - name: Run linter
-        run: yarn lint
+        run: pnpm run lint
 
       - name: Run type check
-        run: yarn typecheck
+        run: pnpm run typecheck
 
       - name: Run tests
-        run: yarn test --coverage
+        run: pnpm test -- --coverage
 
       - name: Build
-        run: yarn build
+        run: pnpm run build
 
       - name: Upload coverage
         uses: codecov/codecov-action@v4
         with:
           files: ./coverage/lcov.info
           fail_ci_if_error: false
+
+      # Auto-commit dist/ changes on push to main
+      - name: Commit dist/
+        if: github.event_name == 'push' && github.ref_name == github.event.repository.default_branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add dist/
+          git diff --staged --quiet || git commit -m "dist update" && git push
 
   release:
     name: Release
@@ -77,9 +89,8 @@ jobs:
           path: |
             /opt/hostedtoolcache/GitVersion.Tool
             ~/.dotnet/tools
-          key: ${{ runner.os }}-${{ runner.arch }}-gitversion-${{ inputs.version-spec }}
+          key: ${{ runner.os }}-${{ runner.arch }}-gitversion-${{ vars.GITVERSION_SPEC || '6.x' }}
           restore-keys: |
-            ${{ runner.os }}-${{ runner.arch }}-gitversion-${{ inputs.version-spec }}
             ${{ runner.os }}-${{ runner.arch }}-gitversion-
 
       - name: Install GitVersion
@@ -91,61 +102,35 @@ jobs:
         id: gitversion
         uses: gittools/actions/gitversion/execute@v4.2.0
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version-file: .nvmrc
-          cache: 'yarn'
-
-      - name: Install dependencies
-        run: yarn install --immutable --immutable-cache
-
-      - name: Build
-        run: yarn build
-
       - name: Configure git
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-
-      - name: Push to release branch
-        run: |
-          RELEASE_BRANCH="releases/v${{ steps.gitversion.outputs.MajorMinorPatch }}"
-
-          # Create a new branch from the current commit
-          git checkout -B $RELEASE_BRANCH
-
-          # Add dist to git (temporarily override .gitignore)
-          git add -f dist/
-
-          # Commit the built dist
-          git commit -m "Build dist for v${{ steps.gitversion.outputs.MajorMinorPatch }}"
-
-          # Push to release branch (create or update)
-          git push origin $RELEASE_BRANCH --force
 
       - name: Install git-cliff
         uses: kenji-miyake/setup-git-cliff@v2
 
       - name: Generate changelog
         id: changelog
+        env:
+          VERSION: v${{ steps.gitversion.outputs.MajorMinorPatch }}
         run: |
           # Get the previous tag for changelog generation
           PREVIOUS_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
 
           if [ -n "$PREVIOUS_TAG" ]; then
             echo "Generating changelog from $PREVIOUS_TAG to HEAD"
-            git cliff "$PREVIOUS_TAG"..HEAD --tag v${{ steps.gitversion.outputs.MajorMinorPatch }} -o CHANGELOG.md
+            git cliff "$PREVIOUS_TAG"..HEAD --tag "$VERSION" -o CHANGELOG.md
           else
             echo "No previous tag found, generating full changelog"
-            git cliff --tag v${{ steps.gitversion.outputs.MajorMinorPatch }} -o CHANGELOG.md
+            git cliff --tag "$VERSION" -o CHANGELOG.md
           fi
 
           # Also generate release notes (just the latest version)
           if [ -n "$PREVIOUS_TAG" ]; then
-            git cliff "$PREVIOUS_TAG"..HEAD --tag v${{ steps.gitversion.outputs.MajorMinorPatch }} --strip header -o RELEASE_NOTES.md
+            git cliff "$PREVIOUS_TAG"..HEAD --tag "$VERSION" --strip header -o RELEASE_NOTES.md
           else
-            git cliff --tag v${{ steps.gitversion.outputs.MajorMinorPatch }} --strip all -o RELEASE_NOTES.md
+            git cliff --tag "$VERSION" --strip all -o RELEASE_NOTES.md
           fi
 
           echo "Release notes:"
@@ -154,6 +139,9 @@ jobs:
       - name: Tag
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          FULL_VERSION: v${{ steps.gitversion.outputs.MajorMinorPatch }}
+          MINOR_VERSION: v${{ steps.gitversion.outputs.Major }}.${{ steps.gitversion.outputs.Minor }}
+          MAJOR_VERSION: v${{ steps.gitversion.outputs.Major }}
         run: |
           function tag() {
             VERSION=$1
@@ -162,28 +150,40 @@ jobs:
             if [[ "${TAG_EXISTS}" == true ]]; then
               HAS_RELEASE=$(gh release list --json tagName -q '.[].tagName' | grep -E "^(${VERSION})$" && echo true || echo false)
               if [[ "${HAS_RELEASE}" == true ]]; then
-                gh release delete --yes ${VERSION}
+                gh release delete --yes "${VERSION}"
               fi
-              git push origin --delete ${VERSION}
-              git tag -d ${VERSION}
+              git push origin --delete "${VERSION}"
+              git tag -d "${VERSION}"
             fi
 
-            git tag -a ${VERSION} -m "chore: Release Version ${VERSION}"
+            git tag -a "${VERSION}" -m "chore: Release Version ${VERSION}"
             git push -f --tags --follow-tags
           }
 
           # Create full version tag (v1.2.3)
-          tag v${{ steps.gitversion.outputs.MajorMinorPatch }}
+          tag "$FULL_VERSION"
 
           # Create/update major.minor tag (v1.2)
-          tag v${{ steps.gitversion.outputs.Major }}.${{ steps.gitversion.outputs.Minor }}
+          tag "$MINOR_VERSION"
 
           # Create/update major tag (v1)
-          tag v${{ steps.gitversion.outputs.Major }}
+          tag "$MAJOR_VERSION"
+
+      - name: Update floating branches
+        env:
+          MAJOR: v${{ steps.gitversion.outputs.Major }}
+          MINOR: v${{ steps.gitversion.outputs.Major }}.${{ steps.gitversion.outputs.Minor }}
+        run: |
+          # Update major branch (v1 -> latest v1.x.x)
+          git push origin HEAD:refs/heads/"$MAJOR" --force
+
+          # Update minor branch (v1.2 -> latest v1.2.x)
+          git push origin HEAD:refs/heads/"$MINOR" --force
 
       - name: Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          FULL_VERSION: v${{ steps.gitversion.outputs.MajorMinorPatch }}
         run: |
           # Clean up any draft releases
           gh release list | grep Draft | awk '{print $1}' | while read -r draft; do
@@ -192,7 +192,7 @@ jobs:
           done
 
           # Create the release with conventional commits changelog
-          gh release create v${{ steps.gitversion.outputs.MajorMinorPatch }} \
+          gh release create "$FULL_VERSION" \
             --notes-file RELEASE_NOTES.md \
             --verify-tag \
             --latest
