@@ -101,7 +101,10 @@ function configureSharedIacBuilder(builder, settings) {
     builder.withCompactWarnings();
   }
   if (settings.parallelism) {
-    builder.withParallelism(parseInt(settings.parallelism, 10));
+    const value = parseInt(settings.parallelism, 10);
+    if (!isNaN(value)) {
+      builder.withParallelism(value);
+    }
   }
   if (settings.lockTimeout) {
     builder.withLockTimeout(settings.lockTimeout);
@@ -138,7 +141,11 @@ async function executeIacCommand(agent, toolLabel, service, settings, successFn,
       stderr: ""
     });
   }
-  const result = await agent.exec(commandArgs[0], commandArgs.slice(1), {
+  const [cmd, ...cmdArgs] = commandArgs;
+  if (!cmd) {
+    return failureFn(new Error(`${toolLabel} produced an empty command`));
+  }
+  const result = await agent.exec(cmd, cmdArgs, {
     cwd: settings.workingDirectory,
     ignoreReturnCode: true
   });
@@ -149,10 +156,7 @@ async function executeIacCommand(agent, toolLabel, service, settings, successFn,
     stderr: result.stderr
   };
   if (result.exitCode !== 0) {
-    return failureFn(
-      new Error(`${toolLabel} failed with exit code ${result.exitCode}`),
-      outputs
-    );
+    return failureFn(new Error(`${toolLabel} failed with exit code ${result.exitCode}`), outputs);
   }
   return successFn(outputs);
 }

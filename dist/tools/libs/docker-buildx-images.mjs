@@ -275,7 +275,7 @@ class SemanticVersionService {
       // plain numbers (not valid semver)
       /^[a-zA-Z]+$/,
       // plain strings (platform/arch strings)
-      /[^\w\.\-\+]/
+      /[^\w.\-+]/
       // special characters not allowed in semver
     ];
     for (const pattern of suspiciousPatterns) {

@@ -835,7 +835,9 @@ class TerragruntRunner extends RunnerBase {
    * Build the Terragrunt service from settings
    */
   buildService(settings, terragruntMajorVersion) {
-    const builder = TerragruntBuilder.create(settings.command).withWorkingDirectory(settings.workingDirectory).withTerragruntMajorVersion(terragruntMajorVersion);
+    const builder = TerragruntBuilder.create(settings.command);
+    builder.withWorkingDirectory(settings.workingDirectory);
+    builder.withTerragruntMajorVersion(terragruntMajorVersion);
     configureSharedIacBuilder(builder, settings);
     if (settings.runAll) {
       builder.withRunAll();
@@ -856,7 +858,10 @@ class TerragruntRunner extends RunnerBase {
       builder.withNoAutoRetry();
     }
     if (settings.terragruntParallelism) {
-      builder.withTerragruntParallelism(parseInt(settings.terragruntParallelism, 10));
+      const value = parseInt(settings.terragruntParallelism, 10);
+      if (!isNaN(value)) {
+        builder.withTerragruntParallelism(value);
+      }
     }
     if (settings.includeDirs.length > 0) {
       builder.withIncludeDirs(settings.includeDirs);

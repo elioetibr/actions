@@ -1217,7 +1217,9 @@ class TerraformRunner extends RunnerBase {
         resolver,
         installer
       );
-      const builder = TerraformBuilder.create(settings.command).withWorkingDirectory(settings.workingDirectory);
+      const builder = TerraformBuilder.create(settings.command).withWorkingDirectory(
+        settings.workingDirectory
+      );
       configureSharedIacBuilder(builder, settings);
       const service = builder.build();
       return await executeIacCommand(
