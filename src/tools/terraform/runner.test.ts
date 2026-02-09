@@ -1,5 +1,6 @@
 import type { IAgent } from '../../agents/interfaces';
 import type { VersionSpec } from '../../libs/version-manager';
+import * as versionManager from '../../libs/version-manager';
 
 // Mock the version-manager module before importing the runner
 jest.mock('../../libs/version-manager', () => {
@@ -16,19 +17,15 @@ jest.mock('../../libs/version-manager', () => {
   };
 });
 
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const { __mockResolver, __mockInstaller } = require('../../libs/version-manager');
-
 import { TerraformRunner } from './runner';
 
-const mockResolver = __mockResolver as {
-  resolve: jest.Mock;
-};
+interface MockInternals {
+  __mockResolver: { resolve: jest.Mock };
+  __mockInstaller: { install: jest.Mock; isInstalled: jest.Mock };
+}
 
-const mockInstaller = __mockInstaller as {
-  install: jest.Mock;
-  isInstalled: jest.Mock;
-};
+const { __mockResolver: mockResolver, __mockInstaller: mockInstaller } =
+  versionManager as unknown as MockInternals;
 
 function createMockAgent(overrides: Record<string, string> = {}): jest.Mocked<IAgent> {
   const inputs: Record<string, string> = {
@@ -57,9 +54,9 @@ function createMockAgent(overrides: Record<string, string> = {}): jest.Mocked<IA
   };
 
   return {
-    getInput: jest.fn((name: string) => inputs[name] ?? ''),
-    getBooleanInput: jest.fn((name: string) => boolInputs[name] ?? false),
-    getMultilineInput: jest.fn(() => []),
+    getInput: jest.fn((name: string, _required?: boolean) => inputs[name] ?? ''),
+    getBooleanInput: jest.fn((name: string, _required?: boolean) => boolInputs[name] ?? false),
+    getMultilineInput: jest.fn((_name: string, _required?: boolean) => []),
     setOutput: jest.fn(),
     info: jest.fn(),
     warning: jest.fn(),

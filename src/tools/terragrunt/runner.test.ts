@@ -1,5 +1,6 @@
 import type { IAgent } from '../../agents/interfaces';
 import type { SemVer, VersionSpec } from '../../libs/version-manager';
+import * as versionManager from '../../libs/version-manager';
 
 // Mock the version-manager module before importing the runner
 jest.mock('../../libs/version-manager', () => {
@@ -24,22 +25,24 @@ jest.mock('../../libs/version-manager', () => {
   };
 });
 
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const {
-  detectTerragruntVersion: mockDetectTerragruntVersion,
-  isV1OrLater: mockIsV1OrLater,
-  __mockTfResolver,
-  __mockTfInstaller,
-  __mockTgResolver,
-  __mockTgInstaller,
-} = require('../../libs/version-manager');
-
 import { TerragruntRunner } from './runner';
 
-const tfResolver = __mockTfResolver as { resolve: jest.Mock };
-const tfInstaller = __mockTfInstaller as { install: jest.Mock; isInstalled: jest.Mock };
-const tgResolver = __mockTgResolver as { resolve: jest.Mock };
-const tgInstaller = __mockTgInstaller as { install: jest.Mock; isInstalled: jest.Mock };
+const mockDetectTerragruntVersion = jest.mocked(versionManager.detectTerragruntVersion);
+const mockIsV1OrLater = jest.mocked(versionManager.isV1OrLater);
+
+interface MockInternals {
+  __mockTfResolver: { resolve: jest.Mock };
+  __mockTfInstaller: { install: jest.Mock; isInstalled: jest.Mock };
+  __mockTgResolver: { resolve: jest.Mock };
+  __mockTgInstaller: { install: jest.Mock; isInstalled: jest.Mock };
+}
+
+const {
+  __mockTfResolver: tfResolver,
+  __mockTfInstaller: tfInstaller,
+  __mockTgResolver: tgResolver,
+  __mockTgInstaller: tgInstaller,
+} = versionManager as unknown as MockInternals;
 
 function createMockAgent(overrides: Record<string, string> = {}): jest.Mocked<IAgent> {
   const inputs: Record<string, string> = {
@@ -88,9 +91,9 @@ function createMockAgent(overrides: Record<string, string> = {}): jest.Mocked<IA
   };
 
   return {
-    getInput: jest.fn((name: string) => inputs[name] ?? ''),
-    getBooleanInput: jest.fn((name: string) => boolInputs[name] ?? false),
-    getMultilineInput: jest.fn(() => []),
+    getInput: jest.fn((name: string, _required?: boolean) => inputs[name] ?? ''),
+    getBooleanInput: jest.fn((name: string, _required?: boolean) => boolInputs[name] ?? false),
+    getMultilineInput: jest.fn((_name: string, _required?: boolean) => []),
     setOutput: jest.fn(),
     info: jest.fn(),
     warning: jest.fn(),
@@ -116,8 +119,8 @@ function setupDefaultMocks(tgVersion: SemVer = tgV0): void {
   // Terragrunt version: skip (no install)
   tgResolver.resolve.mockResolvedValue(undefined);
   // Version detection defaults
-  (mockDetectTerragruntVersion as jest.Mock).mockResolvedValue(tgVersion);
-  (mockIsV1OrLater as jest.Mock).mockReturnValue(tgVersion.major >= 1);
+  mockDetectTerragruntVersion.mockResolvedValue(tgVersion);
+  mockIsV1OrLater.mockReturnValue(tgVersion.major >= 1);
 }
 
 describe('TerragruntRunner', () => {
@@ -312,9 +315,7 @@ describe('TerragruntRunner', () => {
 
     test('version detection error propagates as runner failure', async () => {
       const agent = createMockAgent();
-      (mockDetectTerragruntVersion as jest.Mock).mockRejectedValue(
-        new Error('terragrunt --version failed'),
-      );
+      mockDetectTerragruntVersion.mockRejectedValue(new Error('terragrunt --version failed'));
 
       const result = await runner.run(agent, 'execute');
 
