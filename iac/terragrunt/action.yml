@@ -1,0 +1,161 @@
+name: 'Terragrunt Action'
+description: 'Execute Terragrunt commands with run-all support and fluent builder API'
+author: 'Elio Severo Junior <elio@elio.eti.br>'
+branding:
+  icon: 'terminal'
+  color: 'green'
+
+inputs:
+  command:
+    description: 'Terragrunt command (init, validate, fmt, hclfmt, plan, apply, destroy, output, graph-dependencies, validate-inputs)'
+    required: true
+  working-directory:
+    description: 'Working directory for Terragrunt operations'
+    required: false
+    default: '.'
+  run-all:
+    description: 'Enable run-all mode to execute across all modules'
+    required: false
+    default: 'false'
+  variables:
+    description: 'Terraform variables as JSON object (e.g., {"environment": "production"})'
+    required: false
+    default: '{}'
+  var-files:
+    description: 'Comma-separated list of variable files (.tfvars)'
+    required: false
+    default: ''
+  backend-config:
+    description: 'Backend configuration as JSON object'
+    required: false
+    default: '{}'
+  targets:
+    description: 'Comma-separated list of resource addresses to target'
+    required: false
+    default: ''
+  auto-approve:
+    description: 'Enable auto-approve for apply/destroy commands'
+    required: false
+    default: 'false'
+  plan-file:
+    description: 'Path to plan file (for apply) or output file (for plan -out)'
+    required: false
+    default: ''
+  no-color:
+    description: 'Disable colored output'
+    required: false
+    default: 'true'
+  compact-warnings:
+    description: 'Enable compact warnings'
+    required: false
+    default: 'false'
+  parallelism:
+    description: 'Number of parallel Terraform operations'
+    required: false
+    default: ''
+  lock-timeout:
+    description: 'Lock timeout duration'
+    required: false
+    default: ''
+  refresh:
+    description: 'Enable/disable state refresh (true/false)'
+    required: false
+    default: 'true'
+  reconfigure:
+    description: 'Enable backend reconfiguration for init'
+    required: false
+    default: 'false'
+  migrate-state:
+    description: 'Enable state migration for init'
+    required: false
+    default: 'false'
+  terragrunt-config:
+    description: 'Path to terragrunt.hcl configuration file'
+    required: false
+    default: ''
+  terragrunt-working-dir:
+    description: 'Terragrunt working directory'
+    required: false
+    default: ''
+  non-interactive:
+    description: 'Enable non-interactive mode'
+    required: false
+    default: 'true'
+  no-auto-init:
+    description: 'Disable auto-init'
+    required: false
+    default: 'false'
+  no-auto-retry:
+    description: 'Disable auto-retry'
+    required: false
+    default: 'false'
+  terragrunt-parallelism:
+    description: 'Number of parallel modules for run-all'
+    required: false
+    default: ''
+  include-dirs:
+    description: 'Comma-separated list of directories to include in run-all'
+    required: false
+    default: ''
+  exclude-dirs:
+    description: 'Comma-separated list of directories to exclude from run-all'
+    required: false
+    default: ''
+  ignore-dependency-errors:
+    description: 'Ignore dependency errors during run-all'
+    required: false
+    default: 'false'
+  ignore-external-dependencies:
+    description: 'Ignore external dependencies'
+    required: false
+    default: 'false'
+  include-external-dependencies:
+    description: 'Include external dependencies'
+    required: false
+    default: 'false'
+  terragrunt-source:
+    description: 'Override source for Terraform modules'
+    required: false
+    default: ''
+  source-map:
+    description: 'Source map as JSON object (e.g., {"git::https://orig": "git::https://new"})'
+    required: false
+    default: '{}'
+  download-dir:
+    description: 'Directory for downloaded modules'
+    required: false
+    default: ''
+  iam-role:
+    description: 'IAM role ARN to assume'
+    required: false
+    default: ''
+  iam-role-session-name:
+    description: 'Session name for assumed IAM role'
+    required: false
+    default: ''
+  strict-include:
+    description: 'Enable strict include mode'
+    required: false
+    default: 'false'
+  dry-run:
+    description: 'Dry run mode - only output command without executing'
+    required: false
+    default: 'false'
+
+outputs:
+  command:
+    description: 'The Terragrunt command that was executed'
+  command-args:
+    description: 'The command arguments as a JSON array'
+  command-string:
+    description: 'The full command as a string'
+  exit-code:
+    description: 'Exit code of the Terragrunt command'
+  stdout:
+    description: 'Standard output from the command'
+  stderr:
+    description: 'Standard error from the command'
+
+runs:
+  using: 'node24'
+  main: 'main.mjs'

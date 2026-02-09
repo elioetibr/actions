@@ -1,0 +1,58 @@
+name: E2E - Terraform
+
+on:
+  workflow_dispatch:
+
+jobs:
+  terraform-e2e:
+    name: Terraform Lifecycle
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: e2e/terraform
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Node 24
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_wrapper: false
+
+      - name: Terraform Init
+        uses: ./iac/terraform
+        with:
+          command: init
+          working-directory: e2e/terraform
+
+      - name: Terraform Validate
+        uses: ./iac/terraform
+        with:
+          command: validate
+          working-directory: e2e/terraform
+
+      - name: Terraform Plan
+        uses: ./iac/terraform
+        with:
+          command: plan
+          working-directory: e2e/terraform
+          plan-file: tfplan
+
+      - name: Terraform Apply
+        uses: ./iac/terraform
+        with:
+          command: apply
+          working-directory: e2e/terraform
+          auto-approve: 'true'
+
+      - name: Terraform Destroy
+        uses: ./iac/terraform
+        with:
+          command: destroy
+          working-directory: e2e/terraform
+          auto-approve: 'true'

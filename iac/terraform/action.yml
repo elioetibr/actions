@@ -1,0 +1,89 @@
+name: 'Terraform Action'
+description: 'Execute Terraform commands with a fluent builder API'
+author: 'Elio Severo Junior <elio@elio.eti.br>'
+branding:
+  icon: 'terminal'
+  color: 'purple'
+
+inputs:
+  command:
+    description: 'Terraform command to execute (init, validate, fmt, plan, apply, destroy, output, show)'
+    required: true
+  working-directory:
+    description: 'Working directory for Terraform operations'
+    required: false
+    default: '.'
+  variables:
+    description: 'Terraform variables as JSON object (e.g., {"environment": "production"})'
+    required: false
+    default: '{}'
+  var-files:
+    description: 'Comma-separated list of variable files (.tfvars)'
+    required: false
+    default: ''
+  backend-config:
+    description: 'Backend configuration as JSON object'
+    required: false
+    default: '{}'
+  targets:
+    description: 'Comma-separated list of resource addresses to target'
+    required: false
+    default: ''
+  auto-approve:
+    description: 'Enable auto-approve for apply/destroy commands'
+    required: false
+    default: 'false'
+  plan-file:
+    description: 'Path to plan file (for apply) or output file (for plan -out)'
+    required: false
+    default: ''
+  no-color:
+    description: 'Disable colored output'
+    required: false
+    default: 'true'
+  compact-warnings:
+    description: 'Enable compact warnings'
+    required: false
+    default: 'false'
+  parallelism:
+    description: 'Number of parallel operations'
+    required: false
+    default: ''
+  lock-timeout:
+    description: 'Lock timeout duration'
+    required: false
+    default: ''
+  refresh:
+    description: 'Enable/disable state refresh (true/false)'
+    required: false
+    default: 'true'
+  reconfigure:
+    description: 'Enable backend reconfiguration for init'
+    required: false
+    default: 'false'
+  migrate-state:
+    description: 'Enable state migration for init'
+    required: false
+    default: 'false'
+  dry-run:
+    description: 'Dry run mode - only output command without executing'
+    required: false
+    default: 'false'
+
+outputs:
+  command:
+    description: 'The Terraform command that was executed'
+  command-args:
+    description: 'The command arguments as a JSON array'
+  command-string:
+    description: 'The full command as a string'
+  exit-code:
+    description: 'Exit code of the Terraform command'
+  stdout:
+    description: 'Standard output from the command'
+  stderr:
+    description: 'Standard error from the command'
+
+runs:
+  using: 'node24'
+  main: 'main.mjs'

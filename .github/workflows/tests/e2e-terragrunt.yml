@@ -1,0 +1,118 @@
+name: E2E - Terragrunt
+
+on:
+  workflow_dispatch:
+
+jobs:
+  terragrunt-single:
+    name: Terragrunt Single Module
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Node 24
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_wrapper: false
+
+      - name: Setup Terragrunt
+        uses: autero1/action-terragrunt@v3
+        with:
+          terragrunt-version: 0.75.10
+
+      - name: Terragrunt Init
+        uses: ./iac/terragrunt
+        with:
+          command: init
+          working-directory: e2e/terragrunt/live/app-a
+
+      - name: Terragrunt Validate
+        uses: ./iac/terragrunt
+        with:
+          command: validate
+          working-directory: e2e/terragrunt/live/app-a
+
+      - name: Terragrunt Plan
+        uses: ./iac/terragrunt
+        with:
+          command: plan
+          working-directory: e2e/terragrunt/live/app-a
+
+      - name: Terragrunt Apply
+        uses: ./iac/terragrunt
+        with:
+          command: apply
+          working-directory: e2e/terragrunt/live/app-a
+          auto-approve: 'true'
+
+      - name: Terragrunt Destroy
+        uses: ./iac/terragrunt
+        with:
+          command: destroy
+          working-directory: e2e/terragrunt/live/app-a
+          auto-approve: 'true'
+
+  terragrunt-run-all:
+    name: Terragrunt Run-All
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Node 24
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_wrapper: false
+
+      - name: Setup Terragrunt
+        uses: autero1/action-terragrunt@v3
+        with:
+          terragrunt-version: 0.75.10
+
+      - name: Terragrunt Run-All Init
+        uses: ./iac/terragrunt
+        with:
+          command: init
+          working-directory: e2e/terragrunt/live
+          run-all: 'true'
+
+      - name: Terragrunt Run-All Validate
+        uses: ./iac/terragrunt
+        with:
+          command: validate
+          working-directory: e2e/terragrunt/live
+          run-all: 'true'
+
+      - name: Terragrunt Run-All Plan
+        uses: ./iac/terragrunt
+        with:
+          command: plan
+          working-directory: e2e/terragrunt/live
+          run-all: 'true'
+
+      - name: Terragrunt Run-All Apply
+        uses: ./iac/terragrunt
+        with:
+          command: apply
+          working-directory: e2e/terragrunt/live
+          run-all: 'true'
+          auto-approve: 'true'
+
+      - name: Terragrunt Run-All Destroy
+        uses: ./iac/terragrunt
+        with:
+          command: destroy
+          working-directory: e2e/terragrunt/live
+          run-all: 'true'
+          auto-approve: 'true'
