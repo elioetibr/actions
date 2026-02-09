@@ -37812,6 +37812,12 @@ class GitHubActionsAgent {
   endGroup() {
     coreExports.endGroup();
   }
+  addPath(inputPath) {
+    coreExports.addPath(inputPath);
+  }
+  exportVariable(name, value) {
+    coreExports.exportVariable(name, value);
+  }
   async exec(command, args = [], options = {}) {
     let stdout = "";
     let stderr = "";

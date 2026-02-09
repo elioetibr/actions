@@ -72,17 +72,26 @@ export interface IAgent {
   endGroup(): void;
 
   /**
+   * Prepend a directory to the system PATH for this and subsequent steps
+   * @param inputPath - The directory to add to PATH
+   */
+  addPath(inputPath: string): void;
+
+  /**
+   * Export an environment variable for this and subsequent steps
+   * @param name - The variable name
+   * @param value - The variable value
+   */
+  exportVariable(name: string, value: string): void;
+
+  /**
    * Execute a command
    * @param command - The command to execute
    * @param args - Command arguments
    * @param options - Execution options
    * @returns Promise with exit code and output
    */
-  exec(
-    command: string,
-    args?: string[],
-    options?: IExecOptions,
-  ): Promise<IExecResult>;
+  exec(command: string, args?: string[], options?: IExecOptions): Promise<IExecResult>;
 }
 
 /**

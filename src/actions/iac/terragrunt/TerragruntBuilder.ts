@@ -35,6 +35,7 @@ export class TerragruntBuilder
   private _iamRole: string | undefined;
   private _iamRoleSessionName: string | undefined;
   private _strictInclude: boolean = false;
+  private _terragruntMajorVersion: number = 0;
 
   /**
    * Private constructor - use static factory methods
@@ -236,6 +237,11 @@ export class TerragruntBuilder
     return this;
   }
 
+  withTerragruntMajorVersion(major: number): this {
+    this._terragruntMajorVersion = major;
+    return this;
+  }
+
   // ============ Build ============
 
   build(): ITerragruntService {
@@ -280,6 +286,7 @@ export class TerragruntBuilder
     service.setIamRole(this._iamRole);
     service.setIamRoleSessionName(this._iamRoleSessionName);
     service.setStrictInclude(this._strictInclude);
+    service.setTerragruntMajorVersion(this._terragruntMajorVersion);
 
     return service;
   }
@@ -305,6 +312,7 @@ export class TerragruntBuilder
     this._iamRole = undefined;
     this._iamRoleSessionName = undefined;
     this._strictInclude = false;
+    this._terragruntMajorVersion = 0;
   }
 
   protected validateCommand(command: string): void {

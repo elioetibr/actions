@@ -478,8 +478,8 @@ describe('SemanticVersionBuilder', () => {
         const endTime = process.hrtime.bigint();
         const executionTimeMs = Number(endTime - startTime) / 1_000_000;
 
-        // Should process 1000 items in under 500ms (generous for CI + local variance)
-        expect(executionTimeMs).toBeLessThan(500);
+        // Should process 1000 items in under 1000ms (generous for CI + local variance)
+        expect(executionTimeMs).toBeLessThan(1000);
       });
 
       it('should cache parsed semVerInfo for repeated access', () => {

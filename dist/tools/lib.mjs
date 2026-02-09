@@ -1,6 +1,6 @@
 import { d as createGitHubActionsAgent } from './libs/agents.mjs';
 import { c as createDockerImageToolsRunner } from './libs/docker-buildx-images.mjs';
-import { d as createTerraformRunner } from './libs/terraform.mjs';
+import { j as createTerraformRunner } from './libs/terraform.mjs';
 import { c as createTerragruntRunner } from './libs/terragrunt.mjs';
 export { R as RunnerBase } from './libs/tools.mjs';
 

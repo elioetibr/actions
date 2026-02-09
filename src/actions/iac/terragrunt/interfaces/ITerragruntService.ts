@@ -163,6 +163,12 @@ export interface ITerragruntService extends ITerragruntProvider, IIacService {
   setStrictInclude(enabled: boolean): this;
 
   /**
+   * Set the detected Terragrunt major version for version-aware flag generation
+   * @param version - Major version number (0 for legacy, 1+ for CLI redesign)
+   */
+  setTerragruntMajorVersion(version: number): this;
+
+  /**
    * Clone the service with current configuration
    * @returns New service instance with same configuration
    */

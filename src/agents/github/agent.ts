@@ -51,6 +51,14 @@ export class GitHubActionsAgent implements IAgent {
     core.endGroup();
   }
 
+  addPath(inputPath: string): void {
+    core.addPath(inputPath);
+  }
+
+  exportVariable(name: string, value: string): void {
+    core.exportVariable(name, value);
+  }
+
   async exec(
     command: string,
     args: string[] = [],

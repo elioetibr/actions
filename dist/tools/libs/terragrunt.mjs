@@ -1,7 +1,7 @@
 import { R as RunnerBase } from './tools.mjs';
 import { V as ValidationUtils, a as parseJsonObject, p as parseCommaSeparated } from './docker-buildx-images.mjs';
 import './agents.mjs';
-import { B as BaseIacArgumentBuilder, T as TERRAFORM_COMMANDS, a as BaseIacStringFormatter, b as BaseIacService, c as BaseIacBuilder } from './terraform.mjs';
+import { B as BaseIacArgumentBuilder, T as TERRAFORM_COMMANDS, a as BaseIacStringFormatter, b as BaseIacService, c as BaseIacBuilder, d as TerraformVersionResolver, e as TerraformVersionInstaller, f as TerragruntVersionResolver, g as TerragruntVersionInstaller, h as detectTerragruntVersion, i as isV1OrLater, V as VersionFileReader } from './terraform.mjs';
 
 const TERRAGRUNT_COMMANDS = [
   // Terraform commands
@@ -29,6 +29,62 @@ const TERRAGRUNT_COMMANDS = [
   "validate-inputs"
 ];
 
+const TERRAGRUNT_FLAG_MAP = {
+  config: { v0: "--terragrunt-config", v1: "--config" },
+  workingDir: { v0: "--terragrunt-working-dir", v1: "--working-dir" },
+  noAutoInit: { v0: "--terragrunt-no-auto-init", v1: "--no-auto-init" },
+  noAutoRetry: { v0: "--terragrunt-no-auto-retry", v1: "--no-auto-retry" },
+  nonInteractive: {
+    v0: "--terragrunt-non-interactive",
+    v1: "--non-interactive"
+  },
+  parallelism: { v0: "--terragrunt-parallelism", v1: "--parallelism" },
+  includeDir: { v0: "--terragrunt-include-dir", v1: "--queue-include-dir" },
+  excludeDir: { v0: "--terragrunt-exclude-dir", v1: "--queue-exclude-dir" },
+  ignoreDependencyErrors: {
+    v0: "--terragrunt-ignore-dependency-errors",
+    v1: "--queue-ignore-errors"
+  },
+  ignoreExternalDeps: {
+    v0: "--terragrunt-ignore-external-dependencies",
+    v1: "--queue-exclude-external"
+  },
+  includeExternalDeps: {
+    v0: "--terragrunt-include-external-dependencies",
+    v1: "--queue-include-external"
+  },
+  source: { v0: "--terragrunt-source", v1: "--source" },
+  sourceMap: { v0: "--terragrunt-source-map", v1: "--source-map" },
+  downloadDir: { v0: "--terragrunt-download-dir", v1: "--download-dir" },
+  iamRole: { v0: "--terragrunt-iam-role", v1: "--iam-role" },
+  iamRoleSessionName: {
+    v0: "--terragrunt-iam-role-session-name",
+    v1: "--iam-role-session-name"
+  },
+  strictInclude: {
+    v0: "--terragrunt-strict-include",
+    v1: "--queue-strict-include"
+  }
+};
+const TERRAGRUNT_COMMAND_MAP = {
+  "run-all": ["run", "--all"],
+  "graph-dependencies": ["dag", "graph"],
+  hclfmt: ["hcl", "fmt"],
+  "render-json": ["render", "--json", "-w"],
+  "output-module-groups": ["find", "--dag", "--json"],
+  "validate-inputs": ["validate", "inputs"]
+};
+const REMOVED_V1_COMMANDS = [
+  "aws-provider-patch"
+];
+function selectFlag(flagKey, majorVersion) {
+  const mapping = TERRAGRUNT_FLAG_MAP[flagKey];
+  if (!mapping) {
+    throw new Error(`Unknown Terragrunt flag key: ${flagKey}`);
+  }
+  return majorVersion >= 1 ? mapping.v1 : mapping.v0;
+}
+
 class TerragruntArgumentBuilder extends BaseIacArgumentBuilder {
   provider;
   constructor(provider) {
@@ -46,81 +102,92 @@ class TerragruntArgumentBuilder extends BaseIacArgumentBuilder {
     return args;
   }
   /**
-   * Generate full command array including executor and command
+   * Generate full command array including executor and command.
+   *
+   * Handles version-aware command translation:
+   * - run-all: v0.x `run-all <cmd>` → v1.x `run --all <cmd>`
+   * - Renamed commands: v0.x `hclfmt` → v1.x `hcl fmt`, etc.
+   * - Removed commands: throws an error with a clear message
+   *
    * @returns Full command array ready for execution
    */
   buildCommand() {
     const command = this.provider.command;
+    const isV1 = this.provider.terragruntMajorVersion >= 1;
+    const args = this.toCommandArgs();
     if (this.provider.runAll && this.isTerraformCommand(command)) {
-      return [
-        this.provider.executor,
-        "run-all",
-        command,
-        ...this.toCommandArgs()
-      ];
+      if (isV1) {
+        return [this.provider.executor, "run", "--all", command, ...args];
+      }
+      return [this.provider.executor, "run-all", command, ...args];
     }
-    return [this.provider.executor, command, ...this.toCommandArgs()];
+    if (isV1 && REMOVED_V1_COMMANDS.includes(command)) {
+      throw new Error(
+        `Command '${command}' was removed in Terragrunt v1.x and has no equivalent.`
+      );
+    }
+    if (isV1 && command in TERRAGRUNT_COMMAND_MAP) {
+      const v1Tokens = TERRAGRUNT_COMMAND_MAP[command];
+      return [this.provider.executor, ...v1Tokens, ...args];
+    }
+    return [this.provider.executor, command, ...args];
   }
   /**
-   * Add terragrunt-specific global arguments
+   * Add terragrunt-specific global arguments.
+   * Uses selectFlag() to emit the correct flag format for the detected version.
    */
   addTerragruntGlobalArgs(args) {
+    const v = this.provider.terragruntMajorVersion;
     if (this.provider.terragruntConfig) {
-      args.push("--terragrunt-config", this.provider.terragruntConfig);
+      args.push(selectFlag("config", v), this.provider.terragruntConfig);
     }
     if (this.provider.terragruntWorkingDir) {
-      args.push("--terragrunt-working-dir", this.provider.terragruntWorkingDir);
+      args.push(selectFlag("workingDir", v), this.provider.terragruntWorkingDir);
     }
     if (this.provider.noAutoInit) {
-      args.push("--terragrunt-no-auto-init");
+      args.push(selectFlag("noAutoInit", v));
     }
     if (this.provider.noAutoRetry) {
-      args.push("--terragrunt-no-auto-retry");
+      args.push(selectFlag("noAutoRetry", v));
     }
     if (this.provider.nonInteractive) {
-      args.push("--terragrunt-non-interactive");
+      args.push(selectFlag("nonInteractive", v));
     }
     if (this.provider.runAll && this.provider.terragruntParallelism !== void 0) {
-      args.push(
-        "--terragrunt-parallelism",
-        String(this.provider.terragruntParallelism)
-      );
+      args.push(selectFlag("parallelism", v), String(this.provider.terragruntParallelism));
     }
     for (const dir of this.provider.includeDirs) {
-      args.push("--terragrunt-include-dir", dir);
+      args.push(selectFlag("includeDir", v), dir);
     }
     for (const dir of this.provider.excludeDirs) {
-      args.push("--terragrunt-exclude-dir", dir);
+      args.push(selectFlag("excludeDir", v), dir);
     }
     if (this.provider.ignoreDependencyErrors) {
-      args.push("--terragrunt-ignore-dependency-errors");
+      args.push(selectFlag("ignoreDependencyErrors", v));
     }
     if (this.provider.ignoreExternalDependencies) {
-      args.push("--terragrunt-ignore-external-dependencies");
+      args.push(selectFlag("ignoreExternalDeps", v));
     }
     if (this.provider.includeExternalDependencies) {
-      args.push("--terragrunt-include-external-dependencies");
+      args.push(selectFlag("includeExternalDeps", v));
     }
     if (this.provider.terragruntSource) {
-      args.push("--terragrunt-source", this.provider.terragruntSource);
+      args.push(selectFlag("source", v), this.provider.terragruntSource);
     }
     for (const [original, newSource] of this.provider.sourceMap.entries()) {
-      args.push("--terragrunt-source-map", `${original}=${newSource}`);
+      args.push(selectFlag("sourceMap", v), `${original}=${newSource}`);
     }
     if (this.provider.downloadDir) {
-      args.push("--terragrunt-download-dir", this.provider.downloadDir);
+      args.push(selectFlag("downloadDir", v), this.provider.downloadDir);
     }
     if (this.provider.iamRole) {
-      args.push("--terragrunt-iam-role", this.provider.iamRole);
+      args.push(selectFlag("iamRole", v), this.provider.iamRole);
     }
     if (this.provider.iamRoleSessionName) {
-      args.push(
-        "--terragrunt-iam-role-session-name",
-        this.provider.iamRoleSessionName
-      );
+      args.push(selectFlag("iamRoleSessionName", v), this.provider.iamRoleSessionName);
     }
     if (this.provider.strictInclude) {
-      args.push("--terragrunt-strict-include");
+      args.push(selectFlag("strictInclude", v));
     }
   }
   /**
@@ -167,6 +234,7 @@ class TerragruntService extends BaseIacService {
   _iamRole;
   _iamRoleSessionName;
   _strictInclude = false;
+  _terragruntMajorVersion = 0;
   constructor(command, workingDirectory = ".") {
     super(command, "terragrunt", workingDirectory);
   }
@@ -234,6 +302,9 @@ class TerragruntService extends BaseIacService {
   }
   get strictInclude() {
     return this._strictInclude;
+  }
+  get terragruntMajorVersion() {
+    return this._terragruntMajorVersion;
   }
   // ============ Terragrunt-Specific Mutators ============
   setTerragruntConfig(configPath) {
@@ -342,6 +413,10 @@ class TerragruntService extends BaseIacService {
     this._strictInclude = enabled;
     return this;
   }
+  setTerragruntMajorVersion(version) {
+    this._terragruntMajorVersion = version;
+    return this;
+  }
   // ============ Factory Method Implementations ============
   createArgumentBuilder() {
     return new TerragruntArgumentBuilder(this);
@@ -368,6 +443,7 @@ class TerragruntService extends BaseIacService {
     this._iamRole = void 0;
     this._iamRoleSessionName = void 0;
     this._strictInclude = false;
+    this._terragruntMajorVersion = 0;
   }
   cloneSpecific(target) {
     const t = target;
@@ -395,6 +471,7 @@ class TerragruntService extends BaseIacService {
     t.setIamRole(this._iamRole);
     t.setIamRoleSessionName(this._iamRoleSessionName);
     t.setStrictInclude(this._strictInclude);
+    t.setTerragruntMajorVersion(this._terragruntMajorVersion);
   }
   createEmptyClone() {
     return new TerragruntService(this.command, this.workingDirectory);
@@ -425,6 +502,7 @@ class TerragruntBuilder extends BaseIacBuilder {
   _iamRole;
   _iamRoleSessionName;
   _strictInclude = false;
+  _terragruntMajorVersion = 0;
   /**
    * Private constructor - use static factory methods
    */
@@ -587,6 +665,10 @@ class TerragruntBuilder extends BaseIacBuilder {
     this._strictInclude = true;
     return this;
   }
+  withTerragruntMajorVersion(major) {
+    this._terragruntMajorVersion = major;
+    return this;
+  }
   // ============ Build ============
   build() {
     if (!this._command) {
@@ -594,10 +676,7 @@ class TerragruntBuilder extends BaseIacBuilder {
         "Terragrunt command is required. Use withCommand() or a static factory method."
       );
     }
-    const service = new TerragruntService(
-      this._command,
-      this._workingDirectory
-    );
+    const service = new TerragruntService(this._command, this._workingDirectory);
     this.transferSharedState(service);
     service.setTerragruntConfig(this._terragruntConfig);
     service.setTerragruntWorkingDir(this._terragruntWorkingDir);
@@ -623,6 +702,7 @@ class TerragruntBuilder extends BaseIacBuilder {
     service.setIamRole(this._iamRole);
     service.setIamRoleSessionName(this._iamRoleSessionName);
     service.setStrictInclude(this._strictInclude);
+    service.setTerragruntMajorVersion(this._terragruntMajorVersion);
     return service;
   }
   // ============ Protected Overrides ============
@@ -645,6 +725,7 @@ class TerragruntBuilder extends BaseIacBuilder {
     this._iamRole = void 0;
     this._iamRoleSessionName = void 0;
     this._strictInclude = false;
+    this._terragruntMajorVersion = 0;
   }
   validateCommand(command) {
     if (!TERRAGRUNT_COMMANDS.includes(command)) {
@@ -659,6 +740,10 @@ function getSettings(agent) {
   return {
     command: agent.getInput("command", true),
     workingDirectory: agent.getInput("working-directory") || ".",
+    terraformVersion: agent.getInput("terraform-version"),
+    terraformVersionFile: agent.getInput("terraform-version-file") || ".terraform-version",
+    terragruntVersion: agent.getInput("terragrunt-version"),
+    terragruntVersionFile: agent.getInput("terragrunt-version-file") || ".terragrunt-version",
     runAll: agent.getBooleanInput("run-all"),
     variables: parseJsonObject(agent.getInput("variables")),
     varFiles: parseCommaSeparated(agent.getInput("var-files")),
@@ -694,6 +779,11 @@ function getSettings(agent) {
   };
 }
 
+const fileReader = new VersionFileReader();
+const tfResolver = new TerraformVersionResolver(fileReader);
+const tfInstaller = new TerraformVersionInstaller();
+const tgResolver = new TerragruntVersionResolver(fileReader);
+const tgInstaller = new TerragruntVersionInstaller();
 class TerragruntRunner extends RunnerBase {
   name = "terragrunt";
   steps = /* @__PURE__ */ new Map([
@@ -708,7 +798,9 @@ class TerragruntRunner extends RunnerBase {
       const settings = getSettings(agent);
       const modeLabel = settings.runAll ? "run-all " : "";
       agent.info(`Starting Terragrunt ${modeLabel}${settings.command} action...`);
-      const service = this.buildService(settings);
+      await this.setupTerraformVersion(agent, settings);
+      const tgMajor = await this.setupTerragruntVersion(agent, settings);
+      const service = this.buildService(settings, tgMajor);
       const commandArgs = service.buildCommand();
       const commandString = service.toString();
       agent.info(`Command: ${commandString}`);
@@ -750,12 +842,65 @@ class TerragruntRunner extends RunnerBase {
     }
   }
   /**
+   * Resolve and optionally install the requested Terraform version.
+   * Terragrunt wraps Terraform, so both tools need version management.
+   */
+  async setupTerraformVersion(agent, settings) {
+    agent.startGroup("Terraform version setup");
+    try {
+      const spec = await tfResolver.resolve(
+        settings.terraformVersion,
+        settings.terraformVersionFile,
+        settings.workingDirectory
+      );
+      if (!spec) {
+        agent.info("Terraform version: skip (using existing PATH binary)");
+        return;
+      }
+      agent.info(
+        `Terraform version: ${spec.resolved} (source: ${spec.source})`
+      );
+      const cacheDir = await tfInstaller.install(spec.resolved, agent);
+      agent.addPath(cacheDir);
+    } finally {
+      agent.endGroup();
+    }
+  }
+  /**
+   * Resolve and optionally install the requested Terragrunt version.
+   * After installation, detects the major version for v0/v1 flag selection.
+   * @returns The detected major version number (0 for v0.x, 1 for v1.x+)
+   */
+  async setupTerragruntVersion(agent, settings) {
+    agent.startGroup("Terragrunt version setup");
+    try {
+      const spec = await tgResolver.resolve(
+        settings.terragruntVersion,
+        settings.terragruntVersionFile,
+        settings.workingDirectory
+      );
+      if (spec) {
+        agent.info(
+          `Terragrunt version: ${spec.resolved} (source: ${spec.source})`
+        );
+        const cacheDir = await tgInstaller.install(spec.resolved, agent);
+        agent.addPath(cacheDir);
+      } else {
+        agent.info("Terragrunt version: skip (using existing PATH binary)");
+      }
+      const detected = await detectTerragruntVersion(agent);
+      const majorLabel = isV1OrLater(detected) ? "v1.x+ (new CLI)" : "v0.x (classic CLI)";
+      agent.info(`Detected Terragrunt ${detected.raw} — ${majorLabel}`);
+      return detected.major;
+    } finally {
+      agent.endGroup();
+    }
+  }
+  /**
    * Build the Terragrunt service from settings
    */
-  buildService(settings) {
-    const builder = TerragruntBuilder.create(settings.command).withWorkingDirectory(
-      settings.workingDirectory
-    );
+  buildService(settings, terragruntMajorVersion) {
+    const builder = TerragruntBuilder.create(settings.command).withWorkingDirectory(settings.workingDirectory).withTerragruntMajorVersion(terragruntMajorVersion);
     if (settings.runAll) {
       builder.withRunAll();
     }

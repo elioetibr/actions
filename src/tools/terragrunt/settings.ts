@@ -8,6 +8,10 @@ import { parseCommaSeparated, parseJsonObject } from '../../libs/utils';
 export interface ITerragruntSettings {
   command: TerragruntCommand;
   workingDirectory: string;
+  terraformVersion: string;
+  terraformVersionFile: string;
+  terragruntVersion: string;
+  terragruntVersionFile: string;
   runAll: boolean;
   variables: Record<string, string>;
   varFiles: string[];
@@ -49,6 +53,10 @@ export function getSettings(agent: IAgent): ITerragruntSettings {
   return {
     command: agent.getInput('command', true) as TerragruntCommand,
     workingDirectory: agent.getInput('working-directory') || '.',
+    terraformVersion: agent.getInput('terraform-version'),
+    terraformVersionFile: agent.getInput('terraform-version-file') || '.terraform-version',
+    terragruntVersion: agent.getInput('terragrunt-version'),
+    terragruntVersionFile: agent.getInput('terragrunt-version-file') || '.terragrunt-version',
     runAll: agent.getBooleanInput('run-all'),
     variables: parseJsonObject(agent.getInput('variables')),
     varFiles: parseCommaSeparated(agent.getInput('var-files')),

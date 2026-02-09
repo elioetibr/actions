@@ -136,6 +136,12 @@ export interface ITerragruntBuilder extends IIacBuilder<ITerragruntService> {
   withStrictInclude(): this;
 
   /**
+   * Set the detected Terragrunt major version for version-aware flag generation
+   * @param major - Major version number (0 for legacy, 1+ for CLI redesign)
+   */
+  withTerragruntMajorVersion(major: number): this;
+
+  /**
    * Build the Terragrunt service instance
    * @throws Error if required configuration is missing
    */

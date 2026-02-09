@@ -192,6 +192,11 @@ describe('TerragruntService', () => {
       const service = new TerragruntService('plan');
       expect(service.strictInclude).toBe(false);
     });
+
+    test('terragruntMajorVersion is 0 by default', () => {
+      const service = new TerragruntService('plan');
+      expect(service.terragruntMajorVersion).toBe(0);
+    });
   });
 
   describe('IStringListProvider implementation', () => {
@@ -621,11 +626,11 @@ describe('TerragruntService', () => {
       const service = new TerragruntService('plan');
       const result = service.addSourceMap(
         'git::https://github.com/org/modules.git',
-        '/local/modules'
+        '/local/modules',
       );
       expect(result).toBe(service);
       expect(service.sourceMap.get('git::https://github.com/org/modules.git')).toBe(
-        '/local/modules'
+        '/local/modules',
       );
     });
 
@@ -674,6 +679,13 @@ describe('TerragruntService', () => {
       const result = service.setStrictInclude(true);
       expect(result).toBe(service);
       expect(service.strictInclude).toBe(true);
+    });
+
+    test('setTerragruntMajorVersion sets version', () => {
+      const service = new TerragruntService('plan');
+      const result = service.setTerragruntMajorVersion(1);
+      expect(result).toBe(service);
+      expect(service.terragruntMajorVersion).toBe(1);
     });
   });
 
@@ -744,7 +756,8 @@ describe('TerragruntService', () => {
         .setDownloadDir('/tmp/terragrunt')
         .setIamRole('arn:aws:iam::123456789012:role/TerraformRole')
         .setIamRoleSessionName('session')
-        .setStrictInclude(true);
+        .setStrictInclude(true)
+        .setTerragruntMajorVersion(1);
 
       const result = service.reset();
 
@@ -785,6 +798,7 @@ describe('TerragruntService', () => {
       expect(service.iamRole).toBeUndefined();
       expect(service.iamRoleSessionName).toBeUndefined();
       expect(service.strictInclude).toBe(false);
+      expect(service.terragruntMajorVersion).toBe(0);
       // Command and working directory are NOT reset
       expect(service.command).toBe('apply');
       expect(service.workingDirectory).toBe('./infrastructure');
@@ -828,7 +842,8 @@ describe('TerragruntService', () => {
         .setDownloadDir('/tmp/terragrunt')
         .setIamRole('arn:aws:iam::123456789012:role/TerraformRole')
         .setIamRoleSessionName('session')
-        .setStrictInclude(true);
+        .setStrictInclude(true)
+        .setTerragruntMajorVersion(1);
 
       const cloned = service.clone();
 
@@ -868,6 +883,7 @@ describe('TerragruntService', () => {
       expect(cloned.iamRole).toBe('arn:aws:iam::123456789012:role/TerraformRole');
       expect(cloned.iamRoleSessionName).toBe('session');
       expect(cloned.strictInclude).toBe(true);
+      expect(cloned.terragruntMajorVersion).toBe(1);
     });
 
     test('clone is independent - modifying clone does not affect original', () => {
@@ -953,6 +969,28 @@ describe('TerragruntService', () => {
       expect(command).toContain('terragrunt');
       expect(command).toContain('apply');
       expect(command).toContain('--terragrunt-iam-role');
+    });
+
+    test('v1 run-all plan uses new CLI syntax', () => {
+      const service = new TerragruntService('plan', './infrastructure');
+      service.setRunAll(true).setNonInteractive(true).setTerragruntMajorVersion(1);
+
+      const command = service.buildCommand();
+
+      expect(command[0]).toBe('terragrunt');
+      expect(command[1]).toBe('run');
+      expect(command[2]).toBe('--all');
+      expect(command[3]).toBe('plan');
+      expect(command).toContain('--non-interactive');
+      expect(command).not.toContain('--terragrunt-non-interactive');
+    });
+
+    test('v1 hclfmt is translated to hcl fmt', () => {
+      const service = new TerragruntService('hclfmt', './infrastructure');
+      service.setTerragruntMajorVersion(1);
+
+      const command = service.buildCommand();
+      expect(command).toEqual(['terragrunt', 'hcl', 'fmt']);
     });
 
     test('init command with source override', () => {

@@ -65,6 +65,23 @@ inputs:
     description: 'Enable state migration for init'
     required: false
     default: 'false'
+  terraform-version:
+    description: >
+      Terraform version to install. Use 'x.y.z' for a specific stable version,
+      'latest' for the latest stable release, or 'skip' to use whatever
+      terraform binary is already on PATH. When empty (default), searches for
+      a terraform-version-file in the project tree, falling back to 'latest'.
+      Pre-release versions are not supported.
+    required: false
+    default: ''
+  terraform-version-file:
+    description: >
+      Version file name to search for (tfenv-compatible). Only used when
+      terraform-version is empty. Searched from working-directory upward
+      through parent directories. The file should contain a single line with
+      a stable version string (e.g., '1.9.8').
+    required: false
+    default: '.terraform-version'
   dry-run:
     description: 'Dry run mode - only output command without executing'
     required: false

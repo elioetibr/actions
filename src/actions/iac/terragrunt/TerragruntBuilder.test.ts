@@ -85,9 +85,7 @@ describe('TerragruntBuilder', () => {
 
   describe('terragrunt-specific configuration', () => {
     test('withTerragruntConfig sets config path', () => {
-      const service = TerragruntBuilder.forPlan()
-        .withTerragruntConfig('./terragrunt.hcl')
-        .build();
+      const service = TerragruntBuilder.forPlan().withTerragruntConfig('./terragrunt.hcl').build();
       expect(service.terragruntConfig).toBe('./terragrunt.hcl');
     });
 
@@ -112,10 +110,7 @@ describe('TerragruntBuilder', () => {
     });
 
     test('withTerragruntParallelism sets terragrunt parallelism', () => {
-      const service = TerragruntBuilder.forPlan()
-        .withRunAll()
-        .withTerragruntParallelism(5)
-        .build();
+      const service = TerragruntBuilder.forPlan().withRunAll().withTerragruntParallelism(5).build();
       expect(service.terragruntParallelism).toBe(5);
     });
 
@@ -136,17 +131,12 @@ describe('TerragruntBuilder', () => {
     });
 
     test('withIgnoreDependencyErrors enables ignore dependency errors', () => {
-      const service = TerragruntBuilder.forPlan()
-        .withRunAll()
-        .withIgnoreDependencyErrors()
-        .build();
+      const service = TerragruntBuilder.forPlan().withRunAll().withIgnoreDependencyErrors().build();
       expect(service.ignoreDependencyErrors).toBe(true);
     });
 
     test('withTerragruntSource sets source override', () => {
-      const service = TerragruntBuilder.forPlan()
-        .withTerragruntSource('./local-modules')
-        .build();
+      const service = TerragruntBuilder.forPlan().withTerragruntSource('./local-modules').build();
       expect(service.terragruntSource).toBe('./local-modules');
     });
 
@@ -154,30 +144,21 @@ describe('TerragruntBuilder', () => {
       const service = TerragruntBuilder.forPlan()
         .withSourceMap('git::https://example.com/modules.git', './local')
         .build();
-      expect(
-        service.sourceMap.get('git::https://example.com/modules.git')
-      ).toBe('./local');
+      expect(service.sourceMap.get('git::https://example.com/modules.git')).toBe('./local');
     });
 
     test('withIamRole sets IAM role', () => {
       const service = TerragruntBuilder.forPlan()
         .withIamRole('arn:aws:iam::123456789012:role/TerraformRole')
         .build();
-      expect(service.iamRole).toBe(
-        'arn:aws:iam::123456789012:role/TerraformRole'
-      );
+      expect(service.iamRole).toBe('arn:aws:iam::123456789012:role/TerraformRole');
     });
 
     test('withIamRoleAndSession sets both role and session', () => {
       const service = TerragruntBuilder.forPlan()
-        .withIamRoleAndSession(
-          'arn:aws:iam::123456789012:role/TerraformRole',
-          'terragrunt-session'
-        )
+        .withIamRoleAndSession('arn:aws:iam::123456789012:role/TerraformRole', 'terragrunt-session')
         .build();
-      expect(service.iamRole).toBe(
-        'arn:aws:iam::123456789012:role/TerraformRole'
-      );
+      expect(service.iamRole).toBe('arn:aws:iam::123456789012:role/TerraformRole');
       expect(service.iamRoleSessionName).toBe('terragrunt-session');
     });
   });
@@ -199,36 +180,29 @@ describe('TerragruntBuilder', () => {
     });
 
     test('withParallelism sets parallelism level', () => {
-      const service = TerragruntBuilder.forPlan()
-        .withParallelism(10)
-        .build();
+      const service = TerragruntBuilder.forPlan().withParallelism(10).build();
       expect(service.parallelism).toBe(10);
     });
 
     test('withParallelism throws for level < 1', () => {
-      expect(() =>
-        TerragruntBuilder.forPlan().withParallelism(0)
-      ).toThrow('Parallelism level must be at least 1');
+      expect(() => TerragruntBuilder.forPlan().withParallelism(0)).toThrow(
+        'Parallelism level must be at least 1',
+      );
     });
 
     test('withTerragruntParallelism throws for level < 1', () => {
-      expect(() =>
-        TerragruntBuilder.forPlan().withTerragruntParallelism(0)
-      ).toThrow('Terragrunt parallelism level must be at least 1');
+      expect(() => TerragruntBuilder.forPlan().withTerragruntParallelism(0)).toThrow(
+        'Terragrunt parallelism level must be at least 1',
+      );
     });
 
     test('withoutRefresh disables refresh', () => {
-      const service = TerragruntBuilder.forPlan()
-        .withoutRefresh()
-        .build();
+      const service = TerragruntBuilder.forPlan().withoutRefresh().build();
       expect(service.refresh).toBe(false);
     });
 
     test('withRefresh re-enables refresh after disabling', () => {
-      const service = TerragruntBuilder.forPlan()
-        .withoutRefresh()
-        .withRefresh()
-        .build();
+      const service = TerragruntBuilder.forPlan().withoutRefresh().withRefresh().build();
       expect(service.refresh).toBe(true);
     });
 
@@ -248,51 +222,37 @@ describe('TerragruntBuilder', () => {
     });
 
     test('withLockTimeout sets lock timeout', () => {
-      const service = TerragruntBuilder.forPlan()
-        .withLockTimeout('10s')
-        .build();
+      const service = TerragruntBuilder.forPlan().withLockTimeout('10s').build();
       expect(service.lockTimeout).toBe('10s');
     });
 
     test('withReconfigure enables reconfigure', () => {
-      const service = TerragruntBuilder.forInit()
-        .withReconfigure()
-        .build();
+      const service = TerragruntBuilder.forInit().withReconfigure().build();
       expect(service.reconfigure).toBe(true);
     });
 
     test('withMigrateState enables migrate state', () => {
-      const service = TerragruntBuilder.forInit()
-        .withMigrateState()
-        .build();
+      const service = TerragruntBuilder.forInit().withMigrateState().build();
       expect(service.migrateState).toBe(true);
     });
 
     test('withPlanFile sets plan file', () => {
-      const service = TerragruntBuilder.forApply()
-        .withPlanFile('plan.out')
-        .build();
+      const service = TerragruntBuilder.forApply().withPlanFile('plan.out').build();
       expect(service.planFile).toBe('plan.out');
     });
 
     test('withOutFile sets output file', () => {
-      const service = TerragruntBuilder.forPlan()
-        .withOutFile('plan.out')
-        .build();
+      const service = TerragruntBuilder.forPlan().withOutFile('plan.out').build();
       expect(service.outFile).toBe('plan.out');
     });
 
     test('withVarFile adds var file', () => {
-      const service = TerragruntBuilder.forPlan()
-        .withVarFile('vars.tfvars')
-        .build();
+      const service = TerragruntBuilder.forPlan().withVarFile('vars.tfvars').build();
       expect(service.varFiles).toContain('vars.tfvars');
     });
 
     test('withVarFiles adds multiple var files', () => {
-      const service = TerragruntBuilder.forPlan()
-        .withVarFiles(['a.tfvars', 'b.tfvars'])
-        .build();
+      const service = TerragruntBuilder.forPlan().withVarFiles(['a.tfvars', 'b.tfvars']).build();
       expect(service.varFiles).toContain('a.tfvars');
       expect(service.varFiles).toContain('b.tfvars');
     });
@@ -306,9 +266,7 @@ describe('TerragruntBuilder', () => {
     });
 
     test('withBackendConfig adds backend config', () => {
-      const service = TerragruntBuilder.forInit()
-        .withBackendConfig('bucket', 'my-bucket')
-        .build();
+      const service = TerragruntBuilder.forInit().withBackendConfig('bucket', 'my-bucket').build();
       expect(service.backendConfig.get('bucket')).toBe('my-bucket');
     });
 
@@ -331,9 +289,7 @@ describe('TerragruntBuilder', () => {
 
   describe('terragrunt-specific advanced methods', () => {
     test('withTerragruntWorkingDir sets working directory', () => {
-      const service = TerragruntBuilder.forPlan()
-        .withTerragruntWorkingDir('./modules')
-        .build();
+      const service = TerragruntBuilder.forPlan().withTerragruntWorkingDir('./modules').build();
       expect(service.terragruntWorkingDir).toBe('./modules');
     });
 
@@ -374,16 +330,12 @@ describe('TerragruntBuilder', () => {
     });
 
     test('withIgnoreExternalDependencies', () => {
-      const service = TerragruntBuilder.forPlan()
-        .withIgnoreExternalDependencies()
-        .build();
+      const service = TerragruntBuilder.forPlan().withIgnoreExternalDependencies().build();
       expect(service.ignoreExternalDependencies).toBe(true);
     });
 
     test('withIncludeExternalDependencies', () => {
-      const service = TerragruntBuilder.forPlan()
-        .withIncludeExternalDependencies()
-        .build();
+      const service = TerragruntBuilder.forPlan().withIncludeExternalDependencies().build();
       expect(service.includeExternalDependencies).toBe(true);
     });
 
@@ -396,17 +348,23 @@ describe('TerragruntBuilder', () => {
     });
 
     test('withDownloadDir sets download directory', () => {
-      const service = TerragruntBuilder.forPlan()
-        .withDownloadDir('/tmp/tg')
-        .build();
+      const service = TerragruntBuilder.forPlan().withDownloadDir('/tmp/tg').build();
       expect(service.downloadDir).toBe('/tmp/tg');
     });
 
     test('withStrictInclude enables strict include', () => {
-      const service = TerragruntBuilder.forPlan()
-        .withStrictInclude()
-        .build();
+      const service = TerragruntBuilder.forPlan().withStrictInclude().build();
       expect(service.strictInclude).toBe(true);
+    });
+
+    test('withTerragruntMajorVersion sets version', () => {
+      const service = TerragruntBuilder.forPlan().withTerragruntMajorVersion(1).build();
+      expect(service.terragruntMajorVersion).toBe(1);
+    });
+
+    test('terragruntMajorVersion defaults to 0', () => {
+      const service = TerragruntBuilder.forPlan().build();
+      expect(service.terragruntMajorVersion).toBe(0);
     });
   });
 
@@ -446,7 +404,8 @@ describe('TerragruntBuilder', () => {
         .withSourceMap('a', 'b')
         .withDownloadDir('/tmp')
         .withIamRoleAndSession('arn:role', 'session')
-        .withStrictInclude();
+        .withStrictInclude()
+        .withTerragruntMajorVersion(1);
 
       builder.reset();
 
@@ -454,8 +413,7 @@ describe('TerragruntBuilder', () => {
     });
 
     test('reset allows reuse with new command', () => {
-      const builder = TerragruntBuilder.forPlan()
-        .withVariable('env', 'prod');
+      const builder = TerragruntBuilder.forPlan().withVariable('env', 'prod');
 
       builder.reset();
       builder.withCommand('apply');
@@ -468,9 +426,9 @@ describe('TerragruntBuilder', () => {
 
   describe('validation', () => {
     test('withCommand rejects invalid command', () => {
-      expect(() =>
-        TerragruntBuilder.create().withCommand('invalid-cmd' as any)
-      ).toThrow('Invalid Terragrunt command');
+      expect(() => TerragruntBuilder.create().withCommand('invalid-cmd' as any)).toThrow(
+        'Invalid Terragrunt command',
+      );
     });
   });
 
@@ -501,10 +459,7 @@ describe('TerragruntBuilder', () => {
     });
 
     test('generates command with terragrunt flags', () => {
-      const service = TerragruntBuilder.forPlan()
-        .withNonInteractive()
-        .withNoAutoInit()
-        .build();
+      const service = TerragruntBuilder.forPlan().withNonInteractive().withNoAutoInit().build();
       const command = service.buildCommand();
       expect(command).toContain('--terragrunt-non-interactive');
       expect(command).toContain('--terragrunt-no-auto-init');
@@ -524,9 +479,7 @@ describe('TerragruntBuilder', () => {
     });
 
     test('generates command with terraform variables', () => {
-      const service = TerragruntBuilder.forPlan()
-        .withVariable('environment', 'prod')
-        .build();
+      const service = TerragruntBuilder.forPlan().withVariable('environment', 'prod').build();
       const command = service.buildCommand();
       expect(command).toContain('-var');
       expect(command).toContain('environment=prod');
@@ -546,6 +499,34 @@ describe('TerragruntBuilder', () => {
       const command = service.buildCommand();
       expect(command).toContain('-target');
       expect(command).toContain('module.vpc');
+    });
+
+    test('v1: generates run --all plan instead of run-all plan', () => {
+      const service = TerragruntBuilder.forPlan()
+        .withRunAll()
+        .withTerragruntMajorVersion(1)
+        .build();
+      const command = service.buildCommand();
+      expect(command[0]).toBe('terragrunt');
+      expect(command[1]).toBe('run');
+      expect(command[2]).toBe('--all');
+      expect(command[3]).toBe('plan');
+    });
+
+    test('v1: generates --non-interactive instead of --terragrunt-non-interactive', () => {
+      const service = TerragruntBuilder.forPlan()
+        .withNonInteractive()
+        .withTerragruntMajorVersion(1)
+        .build();
+      const command = service.buildCommand();
+      expect(command).toContain('--non-interactive');
+      expect(command).not.toContain('--terragrunt-non-interactive');
+    });
+
+    test('v1: hclfmt becomes hcl fmt', () => {
+      const service = TerragruntBuilder.forHclFmt().withTerragruntMajorVersion(1).build();
+      const command = service.buildCommand();
+      expect(command).toEqual(['terragrunt', 'hcl', 'fmt']);
     });
   });
 
@@ -568,9 +549,7 @@ describe('TerragruntBuilder', () => {
     });
 
     test('clone creates independent instance', () => {
-      const original = TerragruntBuilder.forPlan()
-        .withVariable('env', 'prod')
-        .build();
+      const original = TerragruntBuilder.forPlan().withVariable('env', 'prod').build();
 
       const cloned = original.clone();
       cloned.addVariable('region', 'us-east-1');
@@ -607,9 +586,7 @@ describe('TerragruntBuilderFactory', () => {
     });
 
     test('planWithTargets() creates plan with targets', () => {
-      const service = TerragruntBuilderFactory.planWithTargets('./infra', [
-        'module.vpc',
-      ]);
+      const service = TerragruntBuilderFactory.planWithTargets('./infra', ['module.vpc']);
       expect(service.targets).toContain('module.vpc');
     });
   });
@@ -627,9 +604,7 @@ describe('TerragruntBuilderFactory', () => {
     });
 
     test('applyWithTargets() creates apply with targets', () => {
-      const service = TerragruntBuilderFactory.applyWithTargets('./infra', [
-        'module.vpc',
-      ]);
+      const service = TerragruntBuilderFactory.applyWithTargets('./infra', ['module.vpc']);
       expect(service.targets).toContain('module.vpc');
       expect(service.autoApprove).toBe(true);
     });
@@ -648,9 +623,7 @@ describe('TerragruntBuilderFactory', () => {
     });
 
     test('destroyWithTargets() creates destroy with targets', () => {
-      const service = TerragruntBuilderFactory.destroyWithTargets('./infra', [
-        'module.vpc',
-      ]);
+      const service = TerragruntBuilderFactory.destroyWithTargets('./infra', ['module.vpc']);
       expect(service.targets).toContain('module.vpc');
       expect(service.autoApprove).toBe(true);
     });
@@ -674,12 +647,16 @@ describe('TerragruntBuilderFactory', () => {
     });
 
     test('planWithOutput with variables', () => {
-      const service = TerragruntBuilderFactory.planWithOutput('./infra', 'plan.out', { env: 'prod' });
+      const service = TerragruntBuilderFactory.planWithOutput('./infra', 'plan.out', {
+        env: 'prod',
+      });
       expect(service.variables.get('env')).toBe('prod');
     });
 
     test('planWithTargets with variables', () => {
-      const service = TerragruntBuilderFactory.planWithTargets('./infra', ['module.vpc'], { env: 'prod' });
+      const service = TerragruntBuilderFactory.planWithTargets('./infra', ['module.vpc'], {
+        env: 'prod',
+      });
       expect(service.variables.get('env')).toBe('prod');
     });
 
@@ -700,7 +677,9 @@ describe('TerragruntBuilderFactory', () => {
     });
 
     test('applyWithTargets with variables', () => {
-      const service = TerragruntBuilderFactory.applyWithTargets('./infra', ['module.vpc'], { env: 'prod' });
+      const service = TerragruntBuilderFactory.applyWithTargets('./infra', ['module.vpc'], {
+        env: 'prod',
+      });
       expect(service.variables.get('env')).toBe('prod');
     });
 
@@ -715,7 +694,9 @@ describe('TerragruntBuilderFactory', () => {
     });
 
     test('destroyWithTargets with variables', () => {
-      const service = TerragruntBuilderFactory.destroyWithTargets('./infra', ['module.vpc'], { env: 'prod' });
+      const service = TerragruntBuilderFactory.destroyWithTargets('./infra', ['module.vpc'], {
+        env: 'prod',
+      });
       expect(service.variables.get('env')).toBe('prod');
     });
 

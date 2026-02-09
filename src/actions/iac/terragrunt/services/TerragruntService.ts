@@ -27,6 +27,7 @@ export class TerragruntService extends BaseIacService implements ITerragruntServ
   private _iamRole: string | undefined;
   private _iamRoleSessionName: string | undefined;
   private _strictInclude: boolean = false;
+  private _terragruntMajorVersion: number = 0;
 
   constructor(command: TerragruntCommand, workingDirectory: string = '.') {
     super(command, 'terragrunt', workingDirectory);
@@ -118,6 +119,10 @@ export class TerragruntService extends BaseIacService implements ITerragruntServ
 
   get strictInclude(): boolean {
     return this._strictInclude;
+  }
+
+  get terragruntMajorVersion(): number {
+    return this._terragruntMajorVersion;
   }
 
   // ============ Terragrunt-Specific Mutators ============
@@ -252,6 +257,11 @@ export class TerragruntService extends BaseIacService implements ITerragruntServ
     return this;
   }
 
+  setTerragruntMajorVersion(version: number): this {
+    this._terragruntMajorVersion = version;
+    return this;
+  }
+
   // ============ Factory Method Implementations ============
 
   protected createArgumentBuilder(): TerragruntArgumentBuilder {
@@ -281,6 +291,7 @@ export class TerragruntService extends BaseIacService implements ITerragruntServ
     this._iamRole = undefined;
     this._iamRoleSessionName = undefined;
     this._strictInclude = false;
+    this._terragruntMajorVersion = 0;
   }
 
   protected cloneSpecific(target: this): void {
@@ -314,6 +325,7 @@ export class TerragruntService extends BaseIacService implements ITerragruntServ
     t.setIamRole(this._iamRole);
     t.setIamRoleSessionName(this._iamRoleSessionName);
     t.setStrictInclude(this._strictInclude);
+    t.setTerragruntMajorVersion(this._terragruntMajorVersion);
   }
 
   protected createEmptyClone(): this {

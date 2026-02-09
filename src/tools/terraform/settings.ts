@@ -8,6 +8,8 @@ import { parseCommaSeparated, parseJsonObject } from '../../libs/utils';
 export interface ITerraformSettings {
   command: TerraformCommand;
   workingDirectory: string;
+  terraformVersion: string;
+  terraformVersionFile: string;
   variables: Record<string, string>;
   varFiles: string[];
   backendConfig: Record<string, string>;
@@ -31,6 +33,8 @@ export function getSettings(agent: IAgent): ITerraformSettings {
   return {
     command: agent.getInput('command', true) as TerraformCommand,
     workingDirectory: agent.getInput('working-directory') || '.',
+    terraformVersion: agent.getInput('terraform-version'),
+    terraformVersionFile: agent.getInput('terraform-version-file') || '.terraform-version',
     variables: parseJsonObject(agent.getInput('variables')),
     varFiles: parseCommaSeparated(agent.getInput('var-files')),
     backendConfig: parseJsonObject(agent.getInput('backend-config')),

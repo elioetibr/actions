@@ -52,7 +52,7 @@ build:
 github-actions:
   - changed-files:
       - any-glob-to-any-file:
-          - 'action.yml'
+          - '/**/*/action.yml'
           - 'src/actions/**/*'
 
 docker:

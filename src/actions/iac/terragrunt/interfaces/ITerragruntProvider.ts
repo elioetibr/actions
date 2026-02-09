@@ -67,6 +67,9 @@ export interface ITerragruntProvider extends IIacProvider {
 
   /** Whether to use strict include mode (--terragrunt-strict-include) */
   readonly strictInclude: boolean;
+
+  /** Detected Terragrunt major version (0 for legacy, 1+ for CLI redesign) */
+  readonly terragruntMajorVersion: number;
 }
 
 /**

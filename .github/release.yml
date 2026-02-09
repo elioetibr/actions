@@ -12,7 +12,7 @@ changelog:
       - dependabot[bot]
 
   categories:
-    - title: 🎉 Init
+    - title: 🎉 Initialization
       labels:
         - type:init
 

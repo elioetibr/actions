@@ -5,7 +5,7 @@ on:
 
 jobs:
   terraform-e2e:
-    name: Terraform Lifecycle
+    name: Terraform Lifecycle (external setup)
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -29,6 +29,66 @@ jobs:
         with:
           command: init
           working-directory: e2e/terraform
+          terraform-version: skip
+
+      - name: Terraform Validate
+        uses: ./iac/terraform
+        with:
+          command: validate
+          working-directory: e2e/terraform
+          terraform-version: skip
+
+      - name: Terraform Plan
+        uses: ./iac/terraform
+        with:
+          command: plan
+          working-directory: e2e/terraform
+          plan-file: tfplan
+          terraform-version: skip
+
+      - name: Terraform Apply
+        uses: ./iac/terraform
+        with:
+          command: apply
+          working-directory: e2e/terraform
+          auto-approve: 'true'
+          terraform-version: skip
+
+      - name: Terraform Destroy
+        uses: ./iac/terraform
+        with:
+          command: destroy
+          working-directory: e2e/terraform
+          auto-approve: 'true'
+          terraform-version: skip
+
+  terraform-version-file:
+    name: Terraform Lifecycle (version file)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: e2e/terraform
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Node 24
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+
+      # No setup-terraform — action resolves from .terraform-version file
+      - name: Terraform Init (version from file)
+        id: init
+        uses: ./iac/terraform
+        with:
+          command: init
+          working-directory: e2e/terraform
+
+      - name: Verify Terraform version
+        run: |
+          terraform --version
+          terraform --version | grep -q "1.9.8" || (echo "Expected Terraform 1.9.8" && exit 1)
 
       - name: Terraform Validate
         uses: ./iac/terraform

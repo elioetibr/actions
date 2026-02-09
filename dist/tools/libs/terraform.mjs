@@ -1,3 +1,7 @@
+import { existsSync } from 'node:fs';
+import { readFile, mkdir, writeFile, unlink, chmod } from 'node:fs/promises';
+import { resolve, join, dirname } from 'node:path';
+import { homedir } from 'node:os';
 import { R as RunnerBase } from './tools.mjs';
 import { V as ValidationUtils, p as parseCommaSeparated, a as parseJsonObject } from './docker-buildx-images.mjs';
 import './agents.mjs';
@@ -378,11 +382,7 @@ class TerraformArgumentBuilder extends BaseIacArgumentBuilder {
    * @returns Full command array ready for execution
    */
   buildCommand() {
-    return [
-      this.provider.executor,
-      this.provider.command,
-      ...this.toCommandArgs()
-    ];
+    return [this.provider.executor, this.provider.command, ...this.toCommandArgs()];
   }
 }
 
@@ -825,7 +825,9 @@ class TerraformBuilder extends BaseIacBuilder {
   // ============ Build ============
   build() {
     if (!this._command) {
-      throw new Error("Terraform command is required. Use withCommand() or a static factory method.");
+      throw new Error(
+        "Terraform command is required. Use withCommand() or a static factory method."
+      );
     }
     const service = new TerraformService(this._command, this._workingDirectory);
     this.transferSharedState(service);
@@ -847,6 +849,8 @@ function getSettings(agent) {
   return {
     command: agent.getInput("command", true),
     workingDirectory: agent.getInput("working-directory") || ".",
+    terraformVersion: agent.getInput("terraform-version"),
+    terraformVersionFile: agent.getInput("terraform-version-file") || ".terraform-version",
     variables: parseJsonObject(agent.getInput("variables")),
     varFiles: parseCommaSeparated(agent.getInput("var-files")),
     backendConfig: parseJsonObject(agent.getInput("backend-config")),
@@ -864,6 +868,373 @@ function getSettings(agent) {
   };
 }
 
+const SUPPORTED_PLATFORMS = /* @__PURE__ */ new Set([
+  "linux",
+  "darwin",
+  "win32"
+]);
+const SUPPORTED_ARCHES = /* @__PURE__ */ new Set(["x64", "arm64"]);
+function getPlatform() {
+  if (!SUPPORTED_PLATFORMS.has(process.platform)) {
+    throw new Error(
+      `Unsupported platform: ${process.platform}. Supported: linux, darwin, windows.`
+    );
+  }
+  if (!SUPPORTED_ARCHES.has(process.arch)) {
+    throw new Error(
+      `Unsupported architecture: ${process.arch}. Supported: x64 (amd64), arm64.`
+    );
+  }
+  const os = process.platform === "win32" ? "windows" : process.platform;
+  const arch = process.arch === "arm64" ? "arm64" : "amd64";
+  return { os, arch };
+}
+function getCacheDir(toolName, version) {
+  const base = process.env["RUNNER_TOOL_CACHE"] || `${process.env["HOME"] ?? "/tmp"}/.tool-versions`;
+  const { arch } = getPlatform();
+  return `${base}/${toolName}/${version}/${arch}`;
+}
+
+const versionCache = /* @__PURE__ */ new Map();
+const TERRAGRUNT_VERSION_RE = /terragrunt\s+version\s+v(\d+)\.(\d+)\.(\d+)/i;
+function parseVersion(output, pattern, toolName) {
+  const match = pattern.exec(output);
+  if (!match?.[1] || !match[2] || !match[3]) {
+    throw new Error(
+      `Failed to parse ${toolName} version from output: ${output.slice(0, 200)}`
+    );
+  }
+  return {
+    major: parseInt(match[1], 10),
+    minor: parseInt(match[2], 10),
+    patch: parseInt(match[3], 10),
+    raw: `${match[1]}.${match[2]}.${match[3]}`
+  };
+}
+async function detectTerragruntVersion(agent) {
+  const cached = versionCache.get("terragrunt");
+  if (cached) {
+    return cached;
+  }
+  const result = await agent.exec("terragrunt", ["--version"], {
+    silent: true,
+    ignoreReturnCode: true
+  });
+  if (result.exitCode !== 0) {
+    throw new Error(
+      `terragrunt --version failed (exit ${result.exitCode}): ${result.stderr}`
+    );
+  }
+  const version = parseVersion(
+    result.stdout,
+    TERRAGRUNT_VERSION_RE,
+    "Terragrunt"
+  );
+  versionCache.set("terragrunt", version);
+  return version;
+}
+function isV1OrLater(version) {
+  return version.major >= 1;
+}
+
+class VersionFileReader {
+  /**
+   * Walk from startDir upward looking for the version file.
+   * Stops at the filesystem root or $HOME.
+   *
+   * @param startDir - Directory to start searching from
+   * @param fileName - Version file name (e.g., '.terraform-version')
+   * @returns The version string from the file, or undefined if not found
+   */
+  async read(startDir, fileName) {
+    const home = homedir();
+    let currentDir = resolve(startDir);
+    while (true) {
+      const filePath = join(currentDir, fileName);
+      try {
+        const content = await readFile(filePath, "utf-8");
+        const version = this.parseVersionFile(content);
+        if (version) {
+          return version;
+        }
+      } catch {
+      }
+      const parentDir = dirname(currentDir);
+      if (currentDir === home || parentDir === currentDir) {
+        break;
+      }
+      currentDir = parentDir;
+    }
+    if (resolve(startDir) !== home) {
+      const homeFilePath = join(home, fileName);
+      try {
+        const content = await readFile(homeFilePath, "utf-8");
+        return this.parseVersionFile(content);
+      } catch {
+      }
+    }
+    return void 0;
+  }
+  /**
+   * Parse the version file content.
+   * Returns the first non-empty, non-comment line, trimmed.
+   */
+  parseVersionFile(content) {
+    const lines = content.split("\n");
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (trimmed && !trimmed.startsWith("#")) {
+        return trimmed;
+      }
+    }
+    return void 0;
+  }
+}
+
+const VERSION_REGEX$1 = /^\d+\.\d+\.\d+$/;
+const HASHICORP_RELEASES_URL = "https://releases.hashicorp.com/terraform";
+function compareSemverDesc(a, b) {
+  const ap = a.split(".").map(Number);
+  const bp = b.split(".").map(Number);
+  return bp[0] - ap[0] || bp[1] - ap[1] || bp[2] - ap[2];
+}
+class TerraformVersionResolver {
+  constructor(fileReader) {
+    this.fileReader = fileReader;
+  }
+  async resolve(version, versionFile, workingDirectory) {
+    const trimmed = version.trim();
+    if (trimmed === "skip") {
+      return void 0;
+    }
+    if (VERSION_REGEX$1.test(trimmed)) {
+      return { input: trimmed, resolved: trimmed, source: "input" };
+    }
+    if (trimmed === "latest") {
+      const latest = await this.fetchLatestVersion();
+      return { input: trimmed, resolved: latest, source: "latest" };
+    }
+    if (trimmed === "") {
+      const fileVersion = await this.fileReader.read(
+        workingDirectory,
+        versionFile
+      );
+      if (fileVersion) {
+        return this.resolveFileVersion(fileVersion, versionFile);
+      }
+      const latest = await this.fetchLatestVersion();
+      return { input: "latest", resolved: latest, source: "latest" };
+    }
+    throw new Error(
+      `Invalid terraform version spec: '${trimmed}'. Use 'x.y.z', 'latest', or 'skip'.`
+    );
+  }
+  /**
+   * Resolve a version string read from a version file.
+   * Supports: 'skip', 'latest', and exact 'x.y.z' specs.
+   */
+  async resolveFileVersion(fileVersion, versionFile) {
+    if (fileVersion === "skip") {
+      return void 0;
+    }
+    if (fileVersion === "latest") {
+      const latest = await this.fetchLatestVersion();
+      return { input: fileVersion, resolved: latest, source: "file" };
+    }
+    if (VERSION_REGEX$1.test(fileVersion)) {
+      return { input: fileVersion, resolved: fileVersion, source: "file" };
+    }
+    throw new Error(
+      `Invalid version in ${versionFile}: '${fileVersion}'. Use 'x.y.z', 'latest', or 'skip'.`
+    );
+  }
+  /**
+   * Fetch the latest stable Terraform version from the HashiCorp releases index.
+   * Filters out prerelease versions (alpha, beta, rc).
+   */
+  async fetchLatestVersion() {
+    const response = await fetch(`${HASHICORP_RELEASES_URL}/index.json`);
+    if (!response.ok) {
+      throw new Error(
+        `Failed to fetch Terraform version index: ${response.status} ${response.statusText}`
+      );
+    }
+    const data = await response.json();
+    const versions = Object.keys(data.versions).filter((v) => VERSION_REGEX$1.test(v)).sort(compareSemverDesc);
+    if (versions.length === 0) {
+      throw new Error(
+        "No stable Terraform versions found in the version index"
+      );
+    }
+    return versions[0];
+  }
+}
+class TerraformVersionInstaller {
+  async isInstalled(version) {
+    const dir = getCacheDir("terraform", version);
+    const binaryName = getPlatform().os === "windows" ? "terraform.exe" : "terraform";
+    return existsSync(join(dir, binaryName));
+  }
+  async install(version, agent) {
+    const cacheDir = getCacheDir("terraform", version);
+    if (await this.isInstalled(version)) {
+      agent.info(`Terraform ${version} already cached at ${cacheDir}`);
+      return cacheDir;
+    }
+    const { os, arch } = getPlatform();
+    const zipName = `terraform_${version}_${os}_${arch}.zip`;
+    const url = `${HASHICORP_RELEASES_URL}/${version}/${zipName}`;
+    agent.info(`Downloading Terraform ${version} from ${url}`);
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(
+        `Failed to download Terraform ${version}: ${response.status} ${response.statusText}`
+      );
+    }
+    await mkdir(cacheDir, { recursive: true });
+    const zipPath = join(cacheDir, zipName);
+    const buffer = Buffer.from(await response.arrayBuffer());
+    await writeFile(zipPath, buffer);
+    const result = await agent.exec("unzip", ["-o", zipPath, "-d", cacheDir], {
+      silent: true
+    });
+    if (result.exitCode !== 0) {
+      throw new Error(
+        `Failed to extract Terraform ${version}: ${result.stderr}`
+      );
+    }
+    await unlink(zipPath);
+    const binaryName = os === "windows" ? "terraform.exe" : "terraform";
+    await chmod(join(cacheDir, binaryName), 493);
+    agent.info(`Terraform ${version} installed to ${cacheDir}`);
+    return cacheDir;
+  }
+}
+
+const VERSION_REGEX = /^\d+\.\d+\.\d+$/;
+const TERRAGRUNT_LATEST_URL = "https://api.github.com/repos/gruntwork-io/terragrunt/releases/latest";
+const TERRAGRUNT_DOWNLOAD_URL = "https://github.com/gruntwork-io/terragrunt/releases/download";
+class TerragruntVersionResolver {
+  constructor(fileReader) {
+    this.fileReader = fileReader;
+  }
+  async resolve(version, versionFile, workingDirectory) {
+    const trimmed = version.trim();
+    if (trimmed === "skip") {
+      return void 0;
+    }
+    if (VERSION_REGEX.test(trimmed)) {
+      return { input: trimmed, resolved: trimmed, source: "input" };
+    }
+    if (trimmed === "latest") {
+      const latest = await this.fetchLatestVersion();
+      return { input: trimmed, resolved: latest, source: "latest" };
+    }
+    if (trimmed === "") {
+      const fileVersion = await this.fileReader.read(
+        workingDirectory,
+        versionFile
+      );
+      if (fileVersion) {
+        return this.resolveFileVersion(fileVersion, versionFile);
+      }
+      const latest = await this.fetchLatestVersion();
+      return { input: "latest", resolved: latest, source: "latest" };
+    }
+    throw new Error(
+      `Invalid terragrunt version spec: '${trimmed}'. Use 'x.y.z', 'latest', or 'skip'.`
+    );
+  }
+  /**
+   * Resolve a version string read from a version file.
+   * Supports: 'skip', 'latest', and exact 'x.y.z' specs.
+   */
+  async resolveFileVersion(fileVersion, versionFile) {
+    if (fileVersion === "skip") {
+      return void 0;
+    }
+    if (fileVersion === "latest") {
+      const latest = await this.fetchLatestVersion();
+      return { input: fileVersion, resolved: latest, source: "file" };
+    }
+    if (VERSION_REGEX.test(fileVersion)) {
+      return { input: fileVersion, resolved: fileVersion, source: "file" };
+    }
+    throw new Error(
+      `Invalid version in ${versionFile}: '${fileVersion}'. Use 'x.y.z', 'latest', or 'skip'.`
+    );
+  }
+  /**
+   * Fetch the latest stable Terragrunt version from the GitHub Releases API.
+   * Strips the 'v' prefix from the tag name.
+   *
+   * Note: GitHub API has a 60 req/hour rate limit for unauthenticated calls.
+   * If you hit rate limits in CI, set the GITHUB_TOKEN environment variable
+   * or pre-specify an exact version.
+   */
+  async fetchLatestVersion() {
+    const headers = {
+      Accept: "application/vnd.github.v3+json",
+      "User-Agent": "elioetibr/actions"
+    };
+    const token = process.env["GITHUB_TOKEN"];
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`;
+    }
+    const response = await fetch(TERRAGRUNT_LATEST_URL, { headers });
+    if (!response.ok) {
+      const hint = response.status === 403 ? " (GitHub API rate limit — set GITHUB_TOKEN to increase the limit)" : "";
+      throw new Error(
+        `Failed to fetch latest Terragrunt version: ${response.status} ${response.statusText}${hint}`
+      );
+    }
+    const data = await response.json();
+    const tag = data.tag_name;
+    const version = tag.startsWith("v") ? tag.slice(1) : tag;
+    if (!VERSION_REGEX.test(version)) {
+      throw new Error(
+        `Unexpected Terragrunt latest version format: '${tag}'`
+      );
+    }
+    return version;
+  }
+}
+class TerragruntVersionInstaller {
+  async isInstalled(version) {
+    const dir = getCacheDir("terragrunt", version);
+    const binaryName = getPlatform().os === "windows" ? "terragrunt.exe" : "terragrunt";
+    return existsSync(join(dir, binaryName));
+  }
+  async install(version, agent) {
+    const cacheDir = getCacheDir("terragrunt", version);
+    if (await this.isInstalled(version)) {
+      agent.info(`Terragrunt ${version} already cached at ${cacheDir}`);
+      return cacheDir;
+    }
+    const { os, arch } = getPlatform();
+    const binaryName = os === "windows" ? "terragrunt.exe" : "terragrunt";
+    const downloadName = `terragrunt_${os}_${arch}`;
+    const url = `${TERRAGRUNT_DOWNLOAD_URL}/v${version}/${downloadName}`;
+    agent.info(`Downloading Terragrunt ${version} from ${url}`);
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(
+        `Failed to download Terragrunt ${version}: ${response.status} ${response.statusText}`
+      );
+    }
+    await mkdir(cacheDir, { recursive: true });
+    const binaryPath = join(cacheDir, binaryName);
+    const buffer = Buffer.from(await response.arrayBuffer());
+    await writeFile(binaryPath, buffer);
+    await chmod(binaryPath, 493);
+    agent.info(`Terragrunt ${version} installed to ${cacheDir}`);
+    return cacheDir;
+  }
+}
+
+const fileReader = new VersionFileReader();
+const resolver = new TerraformVersionResolver(fileReader);
+const installer = new TerraformVersionInstaller();
 class TerraformRunner extends RunnerBase {
   name = "terraform";
   steps = /* @__PURE__ */ new Map([
@@ -877,6 +1248,7 @@ class TerraformRunner extends RunnerBase {
     try {
       const settings = getSettings(agent);
       agent.info(`Starting Terraform ${settings.command} action...`);
+      await this.setupTerraformVersion(agent, settings);
       const service = this.buildService(settings);
       const commandArgs = service.buildCommand();
       const commandString = service.toString();
@@ -914,6 +1286,31 @@ class TerraformRunner extends RunnerBase {
       return this.success(outputs);
     } catch (error) {
       return this.failure(error instanceof Error ? error : new Error(String(error)));
+    }
+  }
+  /**
+   * Resolve and optionally install the requested Terraform version.
+   * When 'skip' is returned the runner uses whatever terraform is on PATH.
+   */
+  async setupTerraformVersion(agent, settings) {
+    agent.startGroup("Terraform version setup");
+    try {
+      const spec = await resolver.resolve(
+        settings.terraformVersion,
+        settings.terraformVersionFile,
+        settings.workingDirectory
+      );
+      if (!spec) {
+        agent.info("Terraform version: skip (using existing PATH binary)");
+        return;
+      }
+      agent.info(
+        `Terraform version: ${spec.resolved} (source: ${spec.source})`
+      );
+      const cacheDir = await installer.install(spec.resolved, agent);
+      agent.addPath(cacheDir);
+    } finally {
+      agent.endGroup();
     }
   }
   /**
@@ -976,5 +1373,5 @@ function createTerraformRunner() {
   return new TerraformRunner();
 }
 
-export { BaseIacArgumentBuilder as B, TERRAFORM_COMMANDS as T, BaseIacStringFormatter as a, BaseIacService as b, BaseIacBuilder as c, createTerraformRunner as d };
+export { BaseIacArgumentBuilder as B, TERRAFORM_COMMANDS as T, VersionFileReader as V, BaseIacStringFormatter as a, BaseIacService as b, BaseIacBuilder as c, TerraformVersionResolver as d, TerraformVersionInstaller as e, TerragruntVersionResolver as f, TerragruntVersionInstaller as g, detectTerragruntVersion as h, isV1OrLater as i, createTerraformRunner as j };
 //# sourceMappingURL=terraform.mjs.map

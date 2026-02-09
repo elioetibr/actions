@@ -2,6 +2,16 @@ import type { IAgent, IRunnerResult } from '../../agents/interfaces';
 import { RunnerBase } from '../common/runner-base';
 import { TerraformBuilder } from '../../actions/iac/terraform/TerraformBuilder';
 import { getSettings, type ITerraformSettings } from './settings';
+import {
+  TerraformVersionResolver,
+  TerraformVersionInstaller,
+  VersionFileReader,
+} from '../../libs/version-manager';
+
+// Module-level singletons — reused across invocations within the same action run
+const fileReader = new VersionFileReader();
+const resolver = new TerraformVersionResolver(fileReader);
+const installer = new TerraformVersionInstaller();
 
 /**
  * Terraform runner
@@ -23,6 +33,9 @@ export class TerraformRunner extends RunnerBase {
       const settings = getSettings(agent);
 
       agent.info(`Starting Terraform ${settings.command} action...`);
+
+      // Resolve and install Terraform version
+      await this.setupTerraformVersion(agent, settings);
 
       // Build the service
       const service = this.buildService(settings);
@@ -73,6 +86,34 @@ export class TerraformRunner extends RunnerBase {
       return this.success(outputs);
     } catch (error) {
       return this.failure(error instanceof Error ? error : new Error(String(error)));
+    }
+  }
+
+  /**
+   * Resolve and optionally install the requested Terraform version.
+   * When 'skip' is returned the runner uses whatever terraform is on PATH.
+   */
+  private async setupTerraformVersion(agent: IAgent, settings: ITerraformSettings): Promise<void> {
+    agent.startGroup('Terraform version setup');
+    try {
+      const spec = await resolver.resolve(
+        settings.terraformVersion,
+        settings.terraformVersionFile,
+        settings.workingDirectory,
+      );
+
+      if (!spec) {
+        agent.info('Terraform version: skip (using existing PATH binary)');
+        return;
+      }
+
+      agent.info(`Terraform version: ${spec.resolved} (source: ${spec.source})`);
+
+      // install() is idempotent — returns cached path if already installed
+      const cacheDir = await installer.install(spec.resolved, agent);
+      agent.addPath(cacheDir);
+    } finally {
+      agent.endGroup();
     }
   }
 
