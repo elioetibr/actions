@@ -2,17 +2,9 @@ import { existsSync } from 'node:fs';
 import { chmod, mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
-import type {
-  IToolAgent,
-  IVersionFileReader,
-  IVersionInstaller,
-  IVersionResolver,
-  VersionSpec,
-} from './interfaces';
+import type { IToolAgent, IVersionFileReader, IVersionInstaller } from './interfaces';
+import { BaseVersionResolver, SEMVER_REGEX } from './base-version-resolver';
 import { getCacheDir, getPlatform } from './platform';
-
-/** Matches an exact semver version without prerelease suffix */
-const VERSION_REGEX = /^\d+\.\d+\.\d+$/;
 
 /** GitHub Releases API endpoint for Terragrunt */
 const TERRAGRUNT_LATEST_URL =
@@ -25,80 +17,16 @@ const TERRAGRUNT_DOWNLOAD_URL = 'https://github.com/gruntwork-io/terragrunt/rele
  * Resolves a Terragrunt version spec to a concrete version string.
  *
  * Resolution priority:
- * 1. `version` is 'skip' → return undefined (do not install)
- * 2. `version` is 'x.y.z' → return as-is
- * 3. `version` is 'latest' → fetch from GitHub Releases API
- * 4. `version` is empty → read version file → resolve from file or latest
+ * 1. `version` is 'skip' -> return undefined (do not install)
+ * 2. `version` is 'x.y.z' -> return as-is
+ * 3. `version` is 'latest' -> fetch from GitHub Releases API
+ * 4. `version` is empty -> read version file -> resolve from file or latest
  *
  * Compatible with tgenv `.terragrunt-version` file conventions.
  */
-export class TerragruntVersionResolver implements IVersionResolver {
-  constructor(private readonly fileReader: IVersionFileReader) {}
-
-  async resolve(
-    version: string,
-    versionFile: string,
-    workingDirectory: string,
-  ): Promise<VersionSpec | undefined> {
-    const trimmed = version.trim();
-
-    // Skip installation
-    if (trimmed === 'skip') {
-      return undefined;
-    }
-
-    // Exact version from input
-    if (VERSION_REGEX.test(trimmed)) {
-      return { input: trimmed, resolved: trimmed, source: 'input' };
-    }
-
-    // Explicit latest
-    if (trimmed === 'latest') {
-      const latest = await this.fetchLatestVersion();
-      return { input: trimmed, resolved: latest, source: 'latest' };
-    }
-
-    // Empty: try version file, then fall back to latest
-    if (trimmed === '') {
-      const fileVersion = await this.fileReader.read(workingDirectory, versionFile);
-      if (fileVersion) {
-        return this.resolveFileVersion(fileVersion, versionFile);
-      }
-      // No file found → latest
-      const latest = await this.fetchLatestVersion();
-      return { input: 'latest', resolved: latest, source: 'latest' };
-    }
-
-    // Unknown spec
-    throw new Error(
-      `Invalid terragrunt version spec: '${trimmed}'. ` + "Use 'x.y.z', 'latest', or 'skip'.",
-    );
-  }
-
-  /**
-   * Resolve a version string read from a version file.
-   * Supports: 'skip', 'latest', and exact 'x.y.z' specs.
-   */
-  private async resolveFileVersion(
-    fileVersion: string,
-    versionFile: string,
-  ): Promise<VersionSpec | undefined> {
-    if (fileVersion === 'skip') {
-      return undefined;
-    }
-
-    if (fileVersion === 'latest') {
-      const latest = await this.fetchLatestVersion();
-      return { input: fileVersion, resolved: latest, source: 'file' };
-    }
-
-    if (VERSION_REGEX.test(fileVersion)) {
-      return { input: fileVersion, resolved: fileVersion, source: 'file' };
-    }
-
-    throw new Error(
-      `Invalid version in ${versionFile}: '${fileVersion}'. ` + "Use 'x.y.z', 'latest', or 'skip'.",
-    );
+export class TerragruntVersionResolver extends BaseVersionResolver {
+  constructor(fileReader: IVersionFileReader) {
+    super(fileReader, 'terragrunt');
   }
 
   /**
@@ -109,7 +37,7 @@ export class TerragruntVersionResolver implements IVersionResolver {
    * If you hit rate limits in CI, set the GITHUB_TOKEN environment variable
    * or pre-specify an exact version.
    */
-  private async fetchLatestVersion(): Promise<string> {
+  protected async fetchLatestVersion(): Promise<string> {
     const headers: Record<string, string> = {
       Accept: 'application/vnd.github.v3+json',
       'User-Agent': 'elioetibr/actions',
@@ -125,7 +53,7 @@ export class TerragruntVersionResolver implements IVersionResolver {
     if (!response.ok) {
       const hint =
         response.status === 403
-          ? ' (GitHub API rate limit — set GITHUB_TOKEN to increase the limit)'
+          ? ' (GitHub API rate limit -- set GITHUB_TOKEN to increase the limit)'
           : '';
       throw new Error(
         `Failed to fetch latest Terragrunt version: ` +
@@ -136,10 +64,10 @@ export class TerragruntVersionResolver implements IVersionResolver {
     const data = (await response.json()) as { tag_name: string };
     const tag = data.tag_name;
 
-    // Strip 'v' prefix: "v1.2.3" → "1.2.3"
+    // Strip 'v' prefix: "v1.2.3" -> "1.2.3"
     const version = tag.startsWith('v') ? tag.slice(1) : tag;
 
-    if (!VERSION_REGEX.test(version)) {
+    if (!SEMVER_REGEX.test(version)) {
       throw new Error(`Unexpected Terragrunt latest version format: '${tag}'`);
     }
 
@@ -152,6 +80,12 @@ export class TerragruntVersionResolver implements IVersionResolver {
  *
  * Terragrunt releases are standalone binaries (no archive extraction needed).
  * The binary is downloaded directly and made executable.
+ *
+ * Cache location: `$RUNNER_TOOL_CACHE/terragrunt/<version>/` in CI,
+ * `$HOME/.tool-versions/terragrunt/<version>/` locally.
+ *
+ * Cache lifetime: indefinite (content-addressed by version). See
+ * TerraformVersionInstaller for eviction notes.
  *
  * Uses the GitHub Actions tool cache directory ($RUNNER_TOOL_CACHE) when
  * available, with a fallback to $HOME/.tool-versions for local development.

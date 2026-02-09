@@ -1,3 +1,4 @@
+export * from './base-version-resolver';
 export * from './interfaces';
 export * from './platform';
 export * from './version-detector';
