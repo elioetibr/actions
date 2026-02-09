@@ -1,6 +1,7 @@
 import * as core from '@actions/core';
 import * as execModule from '@actions/exec';
 import { run } from './main';
+import { DockerBuildXImageToolsBuilder } from './DockerBuildXImageToolsBuilder';
 
 jest.mock('@actions/core');
 jest.mock('@actions/exec');
@@ -230,6 +231,81 @@ describe('Docker BuildX ImageTools main', () => {
         'imageUri',
         '123456789.dkr.ecr.us-east-1.amazonaws.com/my-app:2.0.0-alpha.1',
       );
+    });
+  });
+
+  describe('empty command guards', () => {
+    it('should set failed when create buildCommand returns empty array', async () => {
+      setupInputs();
+      const mockCreateService = {
+        buildCommand: jest.fn().mockReturnValue([]),
+        toString: jest.fn().mockReturnValue(''),
+      };
+      const mockCreateBuilder = {
+        withTags: jest.fn().mockReturnThis(),
+        withSources: jest.fn().mockReturnThis(),
+        withAnnotations: jest.fn().mockReturnThis(),
+        build: jest.fn().mockReturnValue(mockCreateService),
+      };
+      const mockInspectService = {
+        buildCommand: jest.fn().mockReturnValue(['docker', 'buildx', 'imagetools', 'inspect']),
+        toString: jest.fn().mockReturnValue('docker buildx imagetools inspect'),
+      };
+      const mockInspectBuilder = {
+        withSource: jest.fn().mockReturnThis(),
+        build: jest.fn().mockReturnValue(mockInspectService),
+      };
+      jest
+        .spyOn(DockerBuildXImageToolsBuilder, 'forCreate')
+        .mockReturnValue(mockCreateBuilder as any);
+      jest
+        .spyOn(DockerBuildXImageToolsBuilder, 'forInspect')
+        .mockReturnValue(mockInspectBuilder as any);
+
+      await run();
+
+      expect(mockedCore.setFailed).toHaveBeenCalledWith(
+        'Docker BuildX ImageTools produced an empty create command',
+      );
+      expect(mockedExec.exec).not.toHaveBeenCalled();
+      jest.restoreAllMocks();
+    });
+
+    it('should set failed when inspect buildCommand returns empty array', async () => {
+      setupInputs();
+      const mockCreateService = {
+        buildCommand: jest.fn().mockReturnValue(['docker', 'buildx', 'imagetools', 'create']),
+        toString: jest.fn().mockReturnValue('docker buildx imagetools create'),
+      };
+      const mockCreateBuilder = {
+        withTags: jest.fn().mockReturnThis(),
+        withSources: jest.fn().mockReturnThis(),
+        withAnnotations: jest.fn().mockReturnThis(),
+        build: jest.fn().mockReturnValue(mockCreateService),
+      };
+      const mockInspectService = {
+        buildCommand: jest.fn().mockReturnValue([]),
+        toString: jest.fn().mockReturnValue(''),
+      };
+      const mockInspectBuilder = {
+        withSource: jest.fn().mockReturnThis(),
+        build: jest.fn().mockReturnValue(mockInspectService),
+      };
+      jest
+        .spyOn(DockerBuildXImageToolsBuilder, 'forCreate')
+        .mockReturnValue(mockCreateBuilder as any);
+      jest
+        .spyOn(DockerBuildXImageToolsBuilder, 'forInspect')
+        .mockReturnValue(mockInspectBuilder as any);
+
+      await run();
+
+      expect(mockedCore.setFailed).toHaveBeenCalledWith(
+        'Docker BuildX ImageTools produced an empty inspect command',
+      );
+      // Create command should have executed successfully
+      expect(mockedExec.exec).toHaveBeenCalledTimes(1);
+      jest.restoreAllMocks();
     });
   });
 });

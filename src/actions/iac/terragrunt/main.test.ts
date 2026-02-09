@@ -1,6 +1,7 @@
 import * as core from '@actions/core';
 import * as exec from '@actions/exec';
 import { run } from './main';
+import { TerragruntBuilder } from './TerragruntBuilder';
 
 // Mock @actions/core
 jest.mock('@actions/core', () => ({
@@ -94,7 +95,7 @@ describe('terragrunt main', () => {
         expect.objectContaining({
           cwd: '.',
           ignoreReturnCode: true,
-        })
+        }),
       );
       expect(mockSetOutput).toHaveBeenCalledWith('command', 'plan');
       expect(mockSetOutput).toHaveBeenCalledWith('exit-code', '0');
@@ -113,7 +114,7 @@ describe('terragrunt main', () => {
       expect(mockExec).toHaveBeenCalledWith(
         'terragrunt',
         expect.arrayContaining(['run-all', 'plan']),
-        expect.any(Object)
+        expect.any(Object),
       );
     });
 
@@ -137,7 +138,7 @@ describe('terragrunt main', () => {
         expect.arrayContaining(['apply', '-auto-approve']),
         expect.objectContaining({
           cwd: './infrastructure',
-        })
+        }),
       );
     });
 
@@ -189,7 +190,7 @@ describe('terragrunt main', () => {
       expect(mockExec).toHaveBeenCalledWith(
         'terragrunt',
         expect.arrayContaining(['-var', 'environment=prod', '-var', 'region=us-east-1']),
-        expect.any(Object)
+        expect.any(Object),
       );
     });
 
@@ -219,7 +220,7 @@ describe('terragrunt main', () => {
       expect(mockExec).toHaveBeenCalledWith(
         'terragrunt',
         expect.arrayContaining(['-var-file', 'prod.tfvars', '-var-file', 'common.tfvars']),
-        expect.any(Object)
+        expect.any(Object),
       );
     });
 
@@ -236,7 +237,7 @@ describe('terragrunt main', () => {
       expect(mockExec).toHaveBeenCalledWith(
         'terragrunt',
         expect.arrayContaining(['-target', 'module.vpc', '-target', 'aws_instance.web']),
-        expect.any(Object)
+        expect.any(Object),
       );
     });
 
@@ -258,7 +259,7 @@ describe('terragrunt main', () => {
           '-backend-config',
           'key=state.tfstate',
         ]),
-        expect.any(Object)
+        expect.any(Object),
       );
     });
 
@@ -279,7 +280,7 @@ describe('terragrunt main', () => {
       expect(mockExec).toHaveBeenCalledWith(
         'terragrunt',
         expect.arrayContaining(['./plan.tfplan']),
-        expect.any(Object)
+        expect.any(Object),
       );
     });
 
@@ -296,7 +297,7 @@ describe('terragrunt main', () => {
       expect(mockExec).toHaveBeenCalledWith(
         'terragrunt',
         expect.arrayContaining(['-out', './plan.tfplan']),
-        expect.any(Object)
+        expect.any(Object),
       );
     });
 
@@ -312,7 +313,7 @@ describe('terragrunt main', () => {
       expect(mockExec).toHaveBeenCalledWith(
         'terragrunt',
         expect.arrayContaining(['-no-color']),
-        expect.any(Object)
+        expect.any(Object),
       );
     });
 
@@ -328,7 +329,7 @@ describe('terragrunt main', () => {
       expect(mockExec).toHaveBeenCalledWith(
         'terragrunt',
         expect.arrayContaining(['-compact-warnings']),
-        expect.any(Object)
+        expect.any(Object),
       );
     });
 
@@ -345,7 +346,7 @@ describe('terragrunt main', () => {
       expect(mockExec).toHaveBeenCalledWith(
         'terragrunt',
         expect.arrayContaining(['-parallelism', '10']),
-        expect.any(Object)
+        expect.any(Object),
       );
     });
 
@@ -362,7 +363,7 @@ describe('terragrunt main', () => {
       expect(mockExec).toHaveBeenCalledWith(
         'terragrunt',
         expect.arrayContaining(['-lock-timeout', '30s']),
-        expect.any(Object)
+        expect.any(Object),
       );
     });
 
@@ -379,7 +380,7 @@ describe('terragrunt main', () => {
       expect(mockExec).toHaveBeenCalledWith(
         'terragrunt',
         expect.arrayContaining(['-refresh=false']),
-        expect.any(Object)
+        expect.any(Object),
       );
     });
 
@@ -399,7 +400,7 @@ describe('terragrunt main', () => {
       expect(mockExec).toHaveBeenCalledWith(
         'terragrunt',
         expect.arrayContaining(['-reconfigure']),
-        expect.any(Object)
+        expect.any(Object),
       );
     });
 
@@ -419,7 +420,7 @@ describe('terragrunt main', () => {
       expect(mockExec).toHaveBeenCalledWith(
         'terragrunt',
         expect.arrayContaining(['-migrate-state']),
-        expect.any(Object)
+        expect.any(Object),
       );
     });
 
@@ -438,7 +439,7 @@ describe('terragrunt main', () => {
       expect(mockExec).toHaveBeenCalledWith(
         'terragrunt',
         expect.arrayContaining(['--terragrunt-config', './custom.hcl']),
-        expect.any(Object)
+        expect.any(Object),
       );
     });
 
@@ -455,7 +456,7 @@ describe('terragrunt main', () => {
       expect(mockExec).toHaveBeenCalledWith(
         'terragrunt',
         expect.arrayContaining(['--terragrunt-working-dir', './live/prod']),
-        expect.any(Object)
+        expect.any(Object),
       );
     });
 
@@ -471,7 +472,7 @@ describe('terragrunt main', () => {
       expect(mockExec).toHaveBeenCalledWith(
         'terragrunt',
         expect.arrayContaining(['--terragrunt-non-interactive']),
-        expect.any(Object)
+        expect.any(Object),
       );
     });
 
@@ -487,7 +488,7 @@ describe('terragrunt main', () => {
       expect(mockExec).toHaveBeenCalledWith(
         'terragrunt',
         expect.arrayContaining(['--terragrunt-no-auto-init']),
-        expect.any(Object)
+        expect.any(Object),
       );
     });
 
@@ -503,7 +504,7 @@ describe('terragrunt main', () => {
       expect(mockExec).toHaveBeenCalledWith(
         'terragrunt',
         expect.arrayContaining(['--terragrunt-no-auto-retry']),
-        expect.any(Object)
+        expect.any(Object),
       );
     });
 
@@ -524,7 +525,7 @@ describe('terragrunt main', () => {
       expect(mockExec).toHaveBeenCalledWith(
         'terragrunt',
         expect.arrayContaining(['--terragrunt-parallelism', '5']),
-        expect.any(Object)
+        expect.any(Object),
       );
     });
 
@@ -546,7 +547,7 @@ describe('terragrunt main', () => {
           '--terragrunt-include-dir',
           './live/staging',
         ]),
-        expect.any(Object)
+        expect.any(Object),
       );
     });
 
@@ -568,7 +569,7 @@ describe('terragrunt main', () => {
           '--terragrunt-exclude-dir',
           './live/dev',
         ]),
-        expect.any(Object)
+        expect.any(Object),
       );
     });
 
@@ -584,7 +585,7 @@ describe('terragrunt main', () => {
       expect(mockExec).toHaveBeenCalledWith(
         'terragrunt',
         expect.arrayContaining(['--terragrunt-ignore-dependency-errors']),
-        expect.any(Object)
+        expect.any(Object),
       );
     });
 
@@ -600,7 +601,7 @@ describe('terragrunt main', () => {
       expect(mockExec).toHaveBeenCalledWith(
         'terragrunt',
         expect.arrayContaining(['--terragrunt-ignore-external-dependencies']),
-        expect.any(Object)
+        expect.any(Object),
       );
     });
 
@@ -616,7 +617,7 @@ describe('terragrunt main', () => {
       expect(mockExec).toHaveBeenCalledWith(
         'terragrunt',
         expect.arrayContaining(['--terragrunt-include-external-dependencies']),
-        expect.any(Object)
+        expect.any(Object),
       );
     });
 
@@ -633,7 +634,7 @@ describe('terragrunt main', () => {
       expect(mockExec).toHaveBeenCalledWith(
         'terragrunt',
         expect.arrayContaining(['--terragrunt-source', '/local/modules']),
-        expect.any(Object)
+        expect.any(Object),
       );
     });
 
@@ -654,7 +655,7 @@ describe('terragrunt main', () => {
           '--terragrunt-source-map',
           'git::https://github.com/org/modules.git=/local/modules',
         ]),
-        expect.any(Object)
+        expect.any(Object),
       );
     });
 
@@ -671,7 +672,7 @@ describe('terragrunt main', () => {
       expect(mockExec).toHaveBeenCalledWith(
         'terragrunt',
         expect.arrayContaining(['--terragrunt-download-dir', '/tmp/terragrunt']),
-        expect.any(Object)
+        expect.any(Object),
       );
     });
 
@@ -691,7 +692,7 @@ describe('terragrunt main', () => {
           '--terragrunt-iam-role',
           'arn:aws:iam::123456789012:role/TerraformRole',
         ]),
-        expect.any(Object)
+        expect.any(Object),
       );
     });
 
@@ -714,7 +715,7 @@ describe('terragrunt main', () => {
           '--terragrunt-iam-role-session-name',
           'terragrunt-session',
         ]),
-        expect.any(Object)
+        expect.any(Object),
       );
     });
 
@@ -730,7 +731,7 @@ describe('terragrunt main', () => {
       expect(mockExec).toHaveBeenCalledWith(
         'terragrunt',
         expect.arrayContaining(['--terragrunt-strict-include']),
-        expect.any(Object)
+        expect.any(Object),
       );
     });
 
@@ -758,7 +759,7 @@ describe('terragrunt main', () => {
 
       expect(mockSetOutput).toHaveBeenCalledWith(
         'command-args',
-        expect.stringContaining('terragrunt')
+        expect.stringContaining('terragrunt'),
       );
     });
 
@@ -769,7 +770,7 @@ describe('terragrunt main', () => {
 
       expect(mockSetOutput).toHaveBeenCalledWith(
         'command-string',
-        expect.stringContaining('terragrunt plan')
+        expect.stringContaining('terragrunt plan'),
       );
     });
 
@@ -780,6 +781,58 @@ describe('terragrunt main', () => {
       await run();
 
       expect(mockSetFailed).toHaveBeenCalled();
+    });
+  });
+
+  describe('empty command guard', () => {
+    test('sets failed when buildCommand returns empty array', async () => {
+      const mockService = {
+        buildCommand: jest.fn().mockReturnValue([]),
+        toString: jest.fn().mockReturnValue(''),
+      };
+      const mockBuilder = {
+        withWorkingDirectory: jest.fn().mockReturnThis(),
+        withRunAll: jest.fn().mockReturnThis(),
+        withVariables: jest.fn().mockReturnThis(),
+        withVarFiles: jest.fn().mockReturnThis(),
+        withBackendConfigs: jest.fn().mockReturnThis(),
+        withTargets: jest.fn().mockReturnThis(),
+        withAutoApprove: jest.fn().mockReturnThis(),
+        withPlanFile: jest.fn().mockReturnThis(),
+        withOutFile: jest.fn().mockReturnThis(),
+        withNoColor: jest.fn().mockReturnThis(),
+        withCompactWarnings: jest.fn().mockReturnThis(),
+        withParallelism: jest.fn().mockReturnThis(),
+        withLockTimeout: jest.fn().mockReturnThis(),
+        withoutRefresh: jest.fn().mockReturnThis(),
+        withReconfigure: jest.fn().mockReturnThis(),
+        withMigrateState: jest.fn().mockReturnThis(),
+        withTerragruntConfig: jest.fn().mockReturnThis(),
+        withTerragruntWorkingDir: jest.fn().mockReturnThis(),
+        withNonInteractive: jest.fn().mockReturnThis(),
+        withNoAutoInit: jest.fn().mockReturnThis(),
+        withNoAutoRetry: jest.fn().mockReturnThis(),
+        withTerragruntParallelism: jest.fn().mockReturnThis(),
+        withIncludeDirs: jest.fn().mockReturnThis(),
+        withExcludeDirs: jest.fn().mockReturnThis(),
+        withIgnoreDependencyErrors: jest.fn().mockReturnThis(),
+        withIgnoreExternalDependencies: jest.fn().mockReturnThis(),
+        withIncludeExternalDependencies: jest.fn().mockReturnThis(),
+        withTerragruntSource: jest.fn().mockReturnThis(),
+        withSourceMaps: jest.fn().mockReturnThis(),
+        withDownloadDir: jest.fn().mockReturnThis(),
+        withIamRole: jest.fn().mockReturnThis(),
+        withIamRoleAndSession: jest.fn().mockReturnThis(),
+        withStrictInclude: jest.fn().mockReturnThis(),
+        withDryRun: jest.fn().mockReturnThis(),
+        build: jest.fn().mockReturnValue(mockService),
+      };
+      jest.spyOn(TerragruntBuilder, 'create').mockReturnValue(mockBuilder as any);
+
+      await run();
+
+      expect(mockSetFailed).toHaveBeenCalledWith('Terragrunt produced an empty command');
+      jest.restoreAllMocks();
     });
   });
 });

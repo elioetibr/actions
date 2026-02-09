@@ -1,6 +1,7 @@
 import * as core from '@actions/core';
 import * as exec from '@actions/exec';
 import { run } from './main';
+import { TerraformBuilder } from './TerraformBuilder';
 
 // Mock @actions/core
 jest.mock('@actions/core', () => ({
@@ -76,7 +77,7 @@ describe('terraform main', () => {
         expect.objectContaining({
           cwd: '.',
           ignoreReturnCode: true,
-        })
+        }),
       );
       expect(mockSetOutput).toHaveBeenCalledWith('command', 'plan');
       expect(mockSetOutput).toHaveBeenCalledWith('exit-code', '0');
@@ -102,7 +103,7 @@ describe('terraform main', () => {
         expect.arrayContaining(['apply', '-auto-approve']),
         expect.objectContaining({
           cwd: './infrastructure',
-        })
+        }),
       );
     });
 
@@ -142,7 +143,7 @@ describe('terraform main', () => {
       expect(mockExec).toHaveBeenCalledWith(
         'terraform',
         expect.arrayContaining(['-var', 'environment=prod', '-var', 'region=us-east-1']),
-        expect.any(Object)
+        expect.any(Object),
       );
     });
 
@@ -172,7 +173,7 @@ describe('terraform main', () => {
       expect(mockExec).toHaveBeenCalledWith(
         'terraform',
         expect.arrayContaining(['-var-file', 'prod.tfvars', '-var-file', 'common.tfvars']),
-        expect.any(Object)
+        expect.any(Object),
       );
     });
 
@@ -189,7 +190,7 @@ describe('terraform main', () => {
       expect(mockExec).toHaveBeenCalledWith(
         'terraform',
         expect.arrayContaining(['-target', 'module.vpc', '-target', 'aws_instance.web']),
-        expect.any(Object)
+        expect.any(Object),
       );
     });
 
@@ -211,7 +212,7 @@ describe('terraform main', () => {
           '-backend-config',
           'key=state.tfstate',
         ]),
-        expect.any(Object)
+        expect.any(Object),
       );
     });
 
@@ -232,7 +233,7 @@ describe('terraform main', () => {
       expect(mockExec).toHaveBeenCalledWith(
         'terraform',
         expect.arrayContaining(['./plan.tfplan']),
-        expect.any(Object)
+        expect.any(Object),
       );
     });
 
@@ -249,7 +250,7 @@ describe('terraform main', () => {
       expect(mockExec).toHaveBeenCalledWith(
         'terraform',
         expect.arrayContaining(['-out', './plan.tfplan']),
-        expect.any(Object)
+        expect.any(Object),
       );
     });
 
@@ -265,7 +266,7 @@ describe('terraform main', () => {
       expect(mockExec).toHaveBeenCalledWith(
         'terraform',
         expect.arrayContaining(['-no-color']),
-        expect.any(Object)
+        expect.any(Object),
       );
     });
 
@@ -281,7 +282,7 @@ describe('terraform main', () => {
       expect(mockExec).toHaveBeenCalledWith(
         'terraform',
         expect.arrayContaining(['-compact-warnings']),
-        expect.any(Object)
+        expect.any(Object),
       );
     });
 
@@ -298,7 +299,7 @@ describe('terraform main', () => {
       expect(mockExec).toHaveBeenCalledWith(
         'terraform',
         expect.arrayContaining(['-parallelism', '10']),
-        expect.any(Object)
+        expect.any(Object),
       );
     });
 
@@ -315,7 +316,7 @@ describe('terraform main', () => {
       expect(mockExec).toHaveBeenCalledWith(
         'terraform',
         expect.arrayContaining(['-lock-timeout', '30s']),
-        expect.any(Object)
+        expect.any(Object),
       );
     });
 
@@ -332,7 +333,7 @@ describe('terraform main', () => {
       expect(mockExec).toHaveBeenCalledWith(
         'terraform',
         expect.arrayContaining(['-refresh=false']),
-        expect.any(Object)
+        expect.any(Object),
       );
     });
 
@@ -352,7 +353,7 @@ describe('terraform main', () => {
       expect(mockExec).toHaveBeenCalledWith(
         'terraform',
         expect.arrayContaining(['-reconfigure']),
-        expect.any(Object)
+        expect.any(Object),
       );
     });
 
@@ -372,7 +373,7 @@ describe('terraform main', () => {
       expect(mockExec).toHaveBeenCalledWith(
         'terraform',
         expect.arrayContaining(['-migrate-state']),
-        expect.any(Object)
+        expect.any(Object),
       );
     });
 
@@ -400,7 +401,7 @@ describe('terraform main', () => {
 
       expect(mockSetOutput).toHaveBeenCalledWith(
         'command-args',
-        expect.stringContaining('terraform')
+        expect.stringContaining('terraform'),
       );
     });
 
@@ -411,7 +412,7 @@ describe('terraform main', () => {
 
       expect(mockSetOutput).toHaveBeenCalledWith(
         'command-string',
-        expect.stringContaining('terraform plan')
+        expect.stringContaining('terraform plan'),
       );
     });
 
@@ -486,9 +487,43 @@ describe('terraform main', () => {
       const args = execCall?.[1] as string[];
       const targetIndices = args
         .map((arg, i) => (arg === '-target' ? i : -1))
-        .filter((i) => i !== -1);
+        .filter(i => i !== -1);
       // Should only have 2 targets
       expect(targetIndices.length).toBe(2);
+    });
+  });
+
+  describe('empty command guard', () => {
+    test('sets failed when buildCommand returns empty array', async () => {
+      const mockService = {
+        buildCommand: jest.fn().mockReturnValue([]),
+        toString: jest.fn().mockReturnValue(''),
+      };
+      const mockBuilder = {
+        withWorkingDirectory: jest.fn().mockReturnThis(),
+        withVariables: jest.fn().mockReturnThis(),
+        withVarFiles: jest.fn().mockReturnThis(),
+        withBackendConfigs: jest.fn().mockReturnThis(),
+        withTargets: jest.fn().mockReturnThis(),
+        withAutoApprove: jest.fn().mockReturnThis(),
+        withPlanFile: jest.fn().mockReturnThis(),
+        withOutFile: jest.fn().mockReturnThis(),
+        withNoColor: jest.fn().mockReturnThis(),
+        withCompactWarnings: jest.fn().mockReturnThis(),
+        withParallelism: jest.fn().mockReturnThis(),
+        withLockTimeout: jest.fn().mockReturnThis(),
+        withoutRefresh: jest.fn().mockReturnThis(),
+        withReconfigure: jest.fn().mockReturnThis(),
+        withMigrateState: jest.fn().mockReturnThis(),
+        withDryRun: jest.fn().mockReturnThis(),
+        build: jest.fn().mockReturnValue(mockService),
+      };
+      jest.spyOn(TerraformBuilder, 'create').mockReturnValue(mockBuilder as any);
+
+      await run();
+
+      expect(mockSetFailed).toHaveBeenCalledWith('Terraform produced an empty command');
+      jest.restoreAllMocks();
     });
   });
 });
