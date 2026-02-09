@@ -1,12 +1,17 @@
 import type { IAgent, IRunnerResult } from '../../agents/interfaces';
 import { RunnerBase } from '../common/runner-base';
 import { TerraformBuilder } from '../../actions/iac/terraform/TerraformBuilder';
-import { getSettings, type ITerraformSettings } from './settings';
+import { getSettings } from './settings';
 import {
   TerraformVersionResolver,
   TerraformVersionInstaller,
   VersionFileReader,
 } from '../../libs/version-manager';
+import {
+  setupToolVersion,
+  configureSharedIacBuilder,
+  executeIacCommand,
+} from '../common/iac-helpers';
 
 // Module-level singletons — reused across invocations within the same action run
 const fileReader = new VersionFileReader();
@@ -21,158 +26,49 @@ export class TerraformRunner extends RunnerBase {
   readonly name = 'terraform';
 
   protected readonly steps = new Map<string, (agent: IAgent) => Promise<IRunnerResult>>([
-    ['execute', this.execute.bind(this)],
+    ['execute', this.runExecute.bind(this)],
   ]);
 
   /**
-   * Execute step: Build and run the Terraform command
-   * Uses the IAgent.exec() interface for safe command execution (not child_process)
+   * Execute step: Build and run the Terraform command.
+   * All command execution goes through IAgent (not child_process).
    */
-  private async execute(agent: IAgent): Promise<IRunnerResult> {
+  private async runExecute(agent: IAgent): Promise<IRunnerResult> {
     try {
       const settings = getSettings(agent);
 
       agent.info(`Starting Terraform ${settings.command} action...`);
 
       // Resolve and install Terraform version
-      await this.setupTerraformVersion(agent, settings);
-
-      // Build the service
-      const service = this.buildService(settings);
-
-      // Get command details
-      const commandArgs = service.buildCommand();
-      const commandString = service.toString();
-
-      agent.info(`Command: ${commandString}`);
-
-      const baseOutputs: Record<string, string | number | boolean> = {
-        command: settings.command,
-        'command-args': JSON.stringify(commandArgs),
-        'command-string': commandString,
-      };
-
-      // Execute if not dry run
-      if (settings.dryRun) {
-        agent.info('Dry run mode - skipping execution');
-        return this.success({
-          ...baseOutputs,
-          'exit-code': '0',
-          stdout: '',
-          stderr: '',
-        });
-      }
-
-      // Safe execution via IAgent interface (uses execFile internally, not shell)
-      const result = await agent.exec(commandArgs[0]!, commandArgs.slice(1), {
-        cwd: settings.workingDirectory,
-        ignoreReturnCode: true,
-      });
-
-      const outputs = {
-        ...baseOutputs,
-        'exit-code': result.exitCode.toString(),
-        stdout: result.stdout,
-        stderr: result.stderr,
-      };
-
-      if (result.exitCode !== 0) {
-        return this.failure(
-          new Error(`Terraform ${settings.command} failed with exit code ${result.exitCode}`),
-          outputs,
-        );
-      }
-
-      return this.success(outputs);
-    } catch (error) {
-      return this.failure(error instanceof Error ? error : new Error(String(error)));
-    }
-  }
-
-  /**
-   * Resolve and optionally install the requested Terraform version.
-   * When 'skip' is returned the runner uses whatever terraform is on PATH.
-   */
-  private async setupTerraformVersion(agent: IAgent, settings: ITerraformSettings): Promise<void> {
-    agent.startGroup('Terraform version setup');
-    try {
-      const spec = await resolver.resolve(
+      await setupToolVersion(
+        agent,
+        'Terraform',
         settings.terraformVersion,
         settings.terraformVersionFile,
         settings.workingDirectory,
+        resolver,
+        installer,
       );
 
-      if (!spec) {
-        agent.info('Terraform version: skip (using existing PATH binary)');
-        return;
-      }
+      // Build the service
+      const builder = TerraformBuilder.create(settings.command).withWorkingDirectory(
+        settings.workingDirectory,
+      );
+      configureSharedIacBuilder(builder, settings);
+      const service = builder.build();
 
-      agent.info(`Terraform version: ${spec.resolved} (source: ${spec.source})`);
-
-      // install() is idempotent — returns cached path if already installed
-      const cacheDir = await installer.install(spec.resolved, agent);
-      agent.addPath(cacheDir);
-    } finally {
-      agent.endGroup();
+      // Run command through IAgent interface
+      return await executeIacCommand(
+        agent,
+        `Terraform ${settings.command}`,
+        service,
+        settings,
+        this.success.bind(this),
+        this.failure.bind(this),
+      );
+    } catch (error) {
+      return this.failure(error instanceof Error ? error : new Error(String(error)));
     }
-  }
-
-  /**
-   * Build the Terraform service from settings
-   */
-  private buildService(settings: ITerraformSettings) {
-    const builder = TerraformBuilder.create(settings.command).withWorkingDirectory(
-      settings.workingDirectory,
-    );
-
-    if (Object.keys(settings.variables).length > 0) {
-      builder.withVariables(settings.variables);
-    }
-    if (settings.varFiles.length > 0) {
-      builder.withVarFiles(settings.varFiles);
-    }
-    if (Object.keys(settings.backendConfig).length > 0) {
-      builder.withBackendConfigs(settings.backendConfig);
-    }
-    if (settings.targets.length > 0) {
-      builder.withTargets(settings.targets);
-    }
-    if (settings.autoApprove) {
-      builder.withAutoApprove();
-    }
-    if (settings.planFile) {
-      if (settings.command === 'apply') {
-        builder.withPlanFile(settings.planFile);
-      } else if (settings.command === 'plan') {
-        builder.withOutFile(settings.planFile);
-      }
-    }
-    if (settings.noColor) {
-      builder.withNoColor();
-    }
-    if (settings.compactWarnings) {
-      builder.withCompactWarnings();
-    }
-    if (settings.parallelism) {
-      builder.withParallelism(parseInt(settings.parallelism, 10));
-    }
-    if (settings.lockTimeout) {
-      builder.withLockTimeout(settings.lockTimeout);
-    }
-    if (settings.refresh === 'false') {
-      builder.withoutRefresh();
-    }
-    if (settings.reconfigure) {
-      builder.withReconfigure();
-    }
-    if (settings.migrateState) {
-      builder.withMigrateState();
-    }
-    if (settings.dryRun) {
-      builder.withDryRun();
-    }
-
-    return builder.build();
   }
 }
 
