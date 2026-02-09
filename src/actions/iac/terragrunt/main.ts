@@ -2,7 +2,7 @@ import * as core from '@actions/core';
 import { exec } from '@actions/exec';
 import { TerragruntBuilder } from './TerragruntBuilder';
 import { TerragruntCommand } from './interfaces';
-import { catchErrorAndSetFailed, parseCommaSeparated, parseJsonObject } from '../../../libs/utils';
+import { handleError, parseCommaSeparated, parseJsonObject } from '../../../libs/utils';
 
 /**
  * Main action runner for Terragrunt
@@ -249,6 +249,6 @@ export async function run(): Promise<void> {
       }
     }
   } catch (error) {
-    catchErrorAndSetFailed(error);
+    handleError(error);
   }
 }

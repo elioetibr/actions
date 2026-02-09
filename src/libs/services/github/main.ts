@@ -2,7 +2,7 @@
 import * as core from '@actions/core';
 import * as github from '@actions/github';
 import { Context } from '@actions/github/lib/context';
-import { catchErrorAndSetFailed } from '../../utils';
+import { handleError } from '../../utils';
 import { IServiceContainer, createServices } from '../ServiceBuilder';
 
 // Main action runner with Single Responsibility
@@ -28,7 +28,7 @@ export class ActionRunner {
       // const outputsService = this.services.actionOutputsService;
       // outputsService.setOutputs();
     } catch (error) {
-      catchErrorAndSetFailed(error);
+      handleError(error);
     }
   }
 }

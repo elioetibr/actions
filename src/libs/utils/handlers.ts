@@ -37,10 +37,7 @@ export function handleSuccess(): void {
  * @param error - The error object to be processed
  * @param options - Configuration options for error handling
  */
-export function handleError(
-  error: unknown,
-  options: ErrorHandlerOptions = {}
-): void {
+export function handleError(error: unknown, options: ErrorHandlerOptions = {}): void {
   const { setFailed = true, rethrow = false, context = {} } = options;
   const errorMessage = getErrorMessage(error);
   const isKnownError = error instanceof Error;
@@ -48,7 +45,7 @@ export function handleError(
   logger.error('Action failed', {
     ...context,
     error: errorMessage,
-    errorType: isKnownError ? 'Error' : 'UnhandledError'
+    errorType: isKnownError ? 'Error' : 'UnhandledError',
   });
 
   if (setFailed) {
@@ -61,22 +58,4 @@ export function handleError(
   if (rethrow) {
     throw error;
   }
-}
-
-/**
- * Handles error reporting for the action (sets failed status)
- * @param error - The error object to be processed
- * @deprecated Use handleError() instead
- */
-export function catchErrorAndSetFailed(error: unknown): void {
-  handleError(error, { setFailed: true, rethrow: false });
-}
-
-/**
- * Handles error reporting and re-throws the error
- * @param error - The error object to be processed
- * @deprecated Use handleError() instead
- */
-export function errorHandler(error: unknown): void {
-  handleError(error, { setFailed: true, rethrow: true });
 }

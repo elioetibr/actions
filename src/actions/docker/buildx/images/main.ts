@@ -2,7 +2,7 @@ import * as core from '@actions/core';
 import { exec } from '@actions/exec';
 import { DockerBuildXImageToolsBuilder } from './DockerBuildXImageToolsBuilder';
 import { SemanticVersionBuilder } from '../../../../libs/services/version/builders';
-import { catchErrorAndSetFailed, parseFormattedString } from '../../../../libs/utils';
+import { handleError, parseFormattedString } from '../../../../libs/utils';
 
 /**
  * Main action runner for Docker BuildX ImageTools Manifest Creator.
@@ -145,6 +145,6 @@ export async function run(): Promise<void> {
       });
     }
   } catch (error) {
-    catchErrorAndSetFailed(error);
+    handleError(error);
   }
 }

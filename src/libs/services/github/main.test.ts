@@ -2,8 +2,8 @@ import * as core from '@actions/core';
 import * as github from '@actions/github';
 import { Context } from '@actions/github/lib/context';
 import { ActionRunner, run } from './main';
-import { IServiceContainer } from '../ServiceBuilder';
-import { catchErrorAndSetFailed, handleSuccess } from '../../utils';
+import { IServiceContainer, createServices } from '../ServiceBuilder';
+import { handleError, handleSuccess } from '../../utils';
 
 // Mock the dependencies
 jest.mock('@actions/core');
@@ -14,12 +14,12 @@ jest.mock('../ServiceBuilder');
 describe('ActionRunner', () => {
   let mockServices: jest.Mocked<IServiceContainer>;
   let mockCore: jest.Mocked<typeof core>;
-  let mockCatchErrorAndSetFailed: jest.MockedFunction<typeof catchErrorAndSetFailed>;
+  let mockHandleError: jest.MockedFunction<typeof handleError>;
 
   beforeEach(() => {
     mockServices = {
       githubContextService: {
-        buildContext: jest.fn()
+        buildContext: jest.fn(),
       },
       semanticVersionService: {
         version: '1.0.0',
@@ -38,16 +38,16 @@ describe('ActionRunner', () => {
           patch: '0',
           majorMinor: '1.0',
           majorMinorPatch: '1.0.0',
-          semVerSuffix: ''
-        }
-      }
+          semVerSuffix: '',
+        },
+      },
     } as jest.Mocked<IServiceContainer>;
 
     mockCore = core as jest.Mocked<typeof core>;
     mockCore.info = jest.fn();
     mockCore.isDebug = jest.fn().mockReturnValue(true);
 
-    mockCatchErrorAndSetFailed = catchErrorAndSetFailed as jest.MockedFunction<typeof catchErrorAndSetFailed>;
+    mockHandleError = handleError as jest.MockedFunction<typeof handleError>;
   });
 
   afterEach(() => {
@@ -64,7 +64,7 @@ describe('ActionRunner', () => {
   describe('run', () => {
     it('should log startup messages with debug info', async () => {
       const runner = new ActionRunner(mockServices);
-      
+
       await runner.run();
 
       expect(mockCore.info).toHaveBeenCalledWith('⭐ Starting Action Runner...');
@@ -73,26 +73,26 @@ describe('ActionRunner', () => {
       expect(mockCore.isDebug).toHaveBeenCalled();
     });
 
-    it('should handle errors and call catchErrorAndSetFailed', async () => {
+    it('should handle errors and call handleError', async () => {
       const error = new Error('Test error');
       mockCore.info = jest.fn().mockImplementation(() => {
         throw error;
       });
 
       const runner = new ActionRunner(mockServices);
-      
+
       await runner.run();
 
-      expect(mockCatchErrorAndSetFailed).toHaveBeenCalledWith(error);
+      expect(mockHandleError).toHaveBeenCalledWith(error);
     });
 
     it('should stringify services object for debug output', async () => {
       const runner = new ActionRunner(mockServices);
-      
+
       await runner.run();
 
       expect(mockCore.info).toHaveBeenCalledWith(
-        expect.stringMatching(/❓ Debug is Enabled: \{[\s\S]*\}/)
+        expect.stringMatching(/❓ Debug is Enabled: \{[\s\S]*\}/),
       );
     });
   });
@@ -102,19 +102,16 @@ describe('run function', () => {
   let mockContext: Context;
   let mockCreateServices: jest.MockedFunction<any>;
   let mockServices: jest.Mocked<IServiceContainer>;
-  let mockHandleSuccess: jest.MockedFunction<typeof handleSuccess>;
-  let mockCatchErrorAndSetFailed: jest.MockedFunction<typeof catchErrorAndSetFailed>;
-
   beforeEach(() => {
     mockContext = {
       ref: 'refs/heads/main',
       sha: 'abc123',
-      eventName: 'push'
+      eventName: 'push',
     } as Context;
 
     mockServices = {
       githubContextService: {
-        buildContext: jest.fn()
+        buildContext: jest.fn(),
       },
       semanticVersionService: {
         version: '1.0.0',
@@ -133,21 +130,17 @@ describe('run function', () => {
           patch: '0',
           majorMinor: '1.0',
           majorMinorPatch: '1.0.0',
-          semVerSuffix: ''
-        }
-      }
+          semVerSuffix: '',
+        },
+      },
     } as jest.Mocked<IServiceContainer>;
 
     mockCreateServices = jest.fn().mockReturnValue(mockServices);
-    const { createServices } = require('../ServiceBuilder');
-    createServices.mockImplementation(mockCreateServices);
+    jest.mocked(createServices).mockImplementation(mockCreateServices);
 
     const mockCore = core as jest.Mocked<typeof core>;
     mockCore.info = jest.fn();
     mockCore.isDebug = jest.fn().mockReturnValue(false);
-
-    mockHandleSuccess = handleSuccess as jest.MockedFunction<typeof handleSuccess>;
-    mockCatchErrorAndSetFailed = catchErrorAndSetFailed as jest.MockedFunction<typeof catchErrorAndSetFailed>;
   });
 
   afterEach(() => {
@@ -188,15 +181,15 @@ describe('run function', () => {
 
 describe('promise handling patterns', () => {
   let mockHandleSuccess: jest.MockedFunction<typeof handleSuccess>;
-  let mockCatchErrorAndSetFailed: jest.MockedFunction<typeof catchErrorAndSetFailed>;
+  let mockHandleError: jest.MockedFunction<typeof handleError>;
 
   beforeEach(() => {
     mockHandleSuccess = handleSuccess as jest.MockedFunction<typeof handleSuccess>;
-    mockCatchErrorAndSetFailed = catchErrorAndSetFailed as jest.MockedFunction<typeof catchErrorAndSetFailed>;
-    
+    mockHandleError = handleError as jest.MockedFunction<typeof handleError>;
+
     // Mock Promise methods
     mockHandleSuccess.mockResolvedValue(undefined);
-    mockCatchErrorAndSetFailed.mockResolvedValue(undefined);
+    mockHandleError.mockResolvedValue(undefined);
   });
 
   afterEach(() => {
@@ -206,7 +199,7 @@ describe('promise handling patterns', () => {
   it('should handle successful promise execution', async () => {
     const promise = Promise.resolve();
 
-    await promise.then(handleSuccess).catch(catchErrorAndSetFailed);
+    await promise.then(handleSuccess).catch(handleError);
 
     expect(mockHandleSuccess).toHaveBeenCalled();
   });
@@ -215,8 +208,8 @@ describe('promise handling patterns', () => {
     const error = new Error('Execution failed');
     const promise = Promise.reject(error);
 
-    await promise.then(handleSuccess).catch(catchErrorAndSetFailed);
+    await promise.then(handleSuccess).catch(handleError);
 
-    expect(mockCatchErrorAndSetFailed).toHaveBeenCalledWith(error);
+    expect(mockHandleError).toHaveBeenCalledWith(error);
   });
 });

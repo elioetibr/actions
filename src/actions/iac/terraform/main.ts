@@ -2,7 +2,7 @@ import * as core from '@actions/core';
 import { exec } from '@actions/exec';
 import { TerraformBuilder } from './TerraformBuilder';
 import { TerraformCommand } from './interfaces';
-import { catchErrorAndSetFailed, parseCommaSeparated, parseJsonObject } from '../../../libs/utils';
+import { handleError, parseCommaSeparated, parseJsonObject } from '../../../libs/utils';
 
 /**
  * Main action runner for Terraform
@@ -151,6 +151,6 @@ export async function run(): Promise<void> {
       }
     }
   } catch (error) {
-    catchErrorAndSetFailed(error);
+    handleError(error);
   }
 }
