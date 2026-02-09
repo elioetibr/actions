@@ -1,7 +1,7 @@
 import { a as addUnique, r as removeItem, V as ValidationUtils, b as parseJsonObject, p as parseCommaSeparated } from './docker-buildx-images.mjs';
 import './agents.mjs';
 import { R as RunnerBase, s as setupToolVersion, e as executeIacCommand, c as configureSharedIacBuilder } from './tools.mjs';
-import { B as BaseIacArgumentBuilder, T as TERRAFORM_COMMANDS, a as BaseIacStringFormatter, b as BaseIacService, c as BaseIacBuilder, d as TerraformVersionResolver, e as TerraformVersionInstaller, f as TerragruntVersionResolver, g as TerragruntVersionInstaller, h as detectTerragruntVersion, i as isV1OrLater, V as VersionFileReader } from './terraform.mjs';
+import { B as BaseIacArgumentBuilder, T as TERRAFORM_COMMANDS, a as BaseIacStringFormatter, b as BaseIacService, c as BaseIacBuilder, d as TerraformVersionResolver, V as VersionFileReader, e as TerragruntVersionResolver, f as TerraformVersionInstaller, g as TerragruntVersionInstaller, h as detectTerragruntVersion, i as isV1OrLater } from './terraform.mjs';
 
 const TERRAGRUNT_COMMANDS = [
   // Terraform commands

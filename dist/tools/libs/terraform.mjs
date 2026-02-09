@@ -854,6 +854,57 @@ function getSettings(agent) {
   };
 }
 
+const SEMVER_REGEX = /^\d+\.\d+\.\d+$/;
+class BaseVersionResolver {
+  constructor(fileReader, toolName) {
+    this.fileReader = fileReader;
+    this.toolName = toolName;
+  }
+  async resolve(version, versionFile, workingDirectory) {
+    const trimmed = version.trim();
+    if (trimmed === "skip") {
+      return void 0;
+    }
+    if (SEMVER_REGEX.test(trimmed)) {
+      return { input: trimmed, resolved: trimmed, source: "input" };
+    }
+    if (trimmed === "latest") {
+      const latest = await this.fetchLatestVersion();
+      return { input: trimmed, resolved: latest, source: "latest" };
+    }
+    if (trimmed === "") {
+      const fileVersion = await this.fileReader.read(workingDirectory, versionFile);
+      if (fileVersion) {
+        return this.resolveFileVersion(fileVersion, versionFile);
+      }
+      const latest = await this.fetchLatestVersion();
+      return { input: "latest", resolved: latest, source: "latest" };
+    }
+    throw new Error(
+      `Invalid ${this.toolName} version spec: '${trimmed}'. Use 'x.y.z', 'latest', or 'skip'.`
+    );
+  }
+  /**
+   * Resolve a version string read from a version file.
+   * Supports: 'skip', 'latest', and exact 'x.y.z' specs.
+   */
+  async resolveFileVersion(fileVersion, versionFile) {
+    if (fileVersion === "skip") {
+      return void 0;
+    }
+    if (fileVersion === "latest") {
+      const latest = await this.fetchLatestVersion();
+      return { input: fileVersion, resolved: latest, source: "file" };
+    }
+    if (SEMVER_REGEX.test(fileVersion)) {
+      return { input: fileVersion, resolved: fileVersion, source: "file" };
+    }
+    throw new Error(
+      `Invalid version in ${versionFile}: '${fileVersion}'. Use 'x.y.z', 'latest', or 'skip'.`
+    );
+  }
+}
+
 const SUPPORTED_PLATFORMS = /* @__PURE__ */ new Set(["linux", "darwin", "win32"]);
 const SUPPORTED_ARCHES = /* @__PURE__ */ new Set(["x64", "arm64"]);
 function getPlatform() {
@@ -963,59 +1014,15 @@ class VersionFileReader {
   }
 }
 
-const VERSION_REGEX$1 = /^\d+\.\d+\.\d+$/;
 const HASHICORP_RELEASES_URL = "https://releases.hashicorp.com/terraform";
 function compareSemverDesc(a, b) {
   const ap = a.split(".").map(Number);
   const bp = b.split(".").map(Number);
   return bp[0] - ap[0] || bp[1] - ap[1] || bp[2] - ap[2];
 }
-class TerraformVersionResolver {
+class TerraformVersionResolver extends BaseVersionResolver {
   constructor(fileReader) {
-    this.fileReader = fileReader;
-  }
-  async resolve(version, versionFile, workingDirectory) {
-    const trimmed = version.trim();
-    if (trimmed === "skip") {
-      return void 0;
-    }
-    if (VERSION_REGEX$1.test(trimmed)) {
-      return { input: trimmed, resolved: trimmed, source: "input" };
-    }
-    if (trimmed === "latest") {
-      const latest = await this.fetchLatestVersion();
-      return { input: trimmed, resolved: latest, source: "latest" };
-    }
-    if (trimmed === "") {
-      const fileVersion = await this.fileReader.read(workingDirectory, versionFile);
-      if (fileVersion) {
-        return this.resolveFileVersion(fileVersion, versionFile);
-      }
-      const latest = await this.fetchLatestVersion();
-      return { input: "latest", resolved: latest, source: "latest" };
-    }
-    throw new Error(
-      `Invalid terraform version spec: '${trimmed}'. Use 'x.y.z', 'latest', or 'skip'.`
-    );
-  }
-  /**
-   * Resolve a version string read from a version file.
-   * Supports: 'skip', 'latest', and exact 'x.y.z' specs.
-   */
-  async resolveFileVersion(fileVersion, versionFile) {
-    if (fileVersion === "skip") {
-      return void 0;
-    }
-    if (fileVersion === "latest") {
-      const latest = await this.fetchLatestVersion();
-      return { input: fileVersion, resolved: latest, source: "file" };
-    }
-    if (VERSION_REGEX$1.test(fileVersion)) {
-      return { input: fileVersion, resolved: fileVersion, source: "file" };
-    }
-    throw new Error(
-      `Invalid version in ${versionFile}: '${fileVersion}'. Use 'x.y.z', 'latest', or 'skip'.`
-    );
+    super(fileReader, "terraform");
   }
   /**
    * Fetch the latest stable Terraform version from the HashiCorp releases index.
@@ -1029,7 +1036,7 @@ class TerraformVersionResolver {
       );
     }
     const data = await response.json();
-    const versions = Object.keys(data.versions).filter((v) => VERSION_REGEX$1.test(v)).sort(compareSemverDesc);
+    const versions = Object.keys(data.versions).filter((v) => SEMVER_REGEX.test(v)).sort(compareSemverDesc);
     if (versions.length === 0) {
       throw new Error("No stable Terraform versions found in the version index");
     }
@@ -1076,55 +1083,11 @@ class TerraformVersionInstaller {
   }
 }
 
-const VERSION_REGEX = /^\d+\.\d+\.\d+$/;
 const TERRAGRUNT_LATEST_URL = "https://api.github.com/repos/gruntwork-io/terragrunt/releases/latest";
 const TERRAGRUNT_DOWNLOAD_URL = "https://github.com/gruntwork-io/terragrunt/releases/download";
-class TerragruntVersionResolver {
+class TerragruntVersionResolver extends BaseVersionResolver {
   constructor(fileReader) {
-    this.fileReader = fileReader;
-  }
-  async resolve(version, versionFile, workingDirectory) {
-    const trimmed = version.trim();
-    if (trimmed === "skip") {
-      return void 0;
-    }
-    if (VERSION_REGEX.test(trimmed)) {
-      return { input: trimmed, resolved: trimmed, source: "input" };
-    }
-    if (trimmed === "latest") {
-      const latest = await this.fetchLatestVersion();
-      return { input: trimmed, resolved: latest, source: "latest" };
-    }
-    if (trimmed === "") {
-      const fileVersion = await this.fileReader.read(workingDirectory, versionFile);
-      if (fileVersion) {
-        return this.resolveFileVersion(fileVersion, versionFile);
-      }
-      const latest = await this.fetchLatestVersion();
-      return { input: "latest", resolved: latest, source: "latest" };
-    }
-    throw new Error(
-      `Invalid terragrunt version spec: '${trimmed}'. Use 'x.y.z', 'latest', or 'skip'.`
-    );
-  }
-  /**
-   * Resolve a version string read from a version file.
-   * Supports: 'skip', 'latest', and exact 'x.y.z' specs.
-   */
-  async resolveFileVersion(fileVersion, versionFile) {
-    if (fileVersion === "skip") {
-      return void 0;
-    }
-    if (fileVersion === "latest") {
-      const latest = await this.fetchLatestVersion();
-      return { input: fileVersion, resolved: latest, source: "file" };
-    }
-    if (VERSION_REGEX.test(fileVersion)) {
-      return { input: fileVersion, resolved: fileVersion, source: "file" };
-    }
-    throw new Error(
-      `Invalid version in ${versionFile}: '${fileVersion}'. Use 'x.y.z', 'latest', or 'skip'.`
-    );
+    super(fileReader, "terragrunt");
   }
   /**
    * Fetch the latest stable Terragrunt version from the GitHub Releases API.
@@ -1145,7 +1108,7 @@ class TerragruntVersionResolver {
     }
     const response = await fetch(TERRAGRUNT_LATEST_URL, { headers });
     if (!response.ok) {
-      const hint = response.status === 403 ? " (GitHub API rate limit — set GITHUB_TOKEN to increase the limit)" : "";
+      const hint = response.status === 403 ? " (GitHub API rate limit -- set GITHUB_TOKEN to increase the limit)" : "";
       throw new Error(
         `Failed to fetch latest Terragrunt version: ${response.status} ${response.statusText}${hint}`
       );
@@ -1153,7 +1116,7 @@ class TerragruntVersionResolver {
     const data = await response.json();
     const tag = data.tag_name;
     const version = tag.startsWith("v") ? tag.slice(1) : tag;
-    if (!VERSION_REGEX.test(version)) {
+    if (!SEMVER_REGEX.test(version)) {
       throw new Error(`Unexpected Terragrunt latest version format: '${tag}'`);
     }
     return version;
@@ -1239,5 +1202,5 @@ function createTerraformRunner() {
   return new TerraformRunner();
 }
 
-export { BaseIacArgumentBuilder as B, TERRAFORM_COMMANDS as T, VersionFileReader as V, BaseIacStringFormatter as a, BaseIacService as b, BaseIacBuilder as c, TerraformVersionResolver as d, TerraformVersionInstaller as e, TerragruntVersionResolver as f, TerragruntVersionInstaller as g, detectTerragruntVersion as h, isV1OrLater as i, createTerraformRunner as j };
+export { BaseIacArgumentBuilder as B, TERRAFORM_COMMANDS as T, VersionFileReader as V, BaseIacStringFormatter as a, BaseIacService as b, BaseIacBuilder as c, TerraformVersionResolver as d, TerragruntVersionResolver as e, TerraformVersionInstaller as f, TerragruntVersionInstaller as g, detectTerragruntVersion as h, isV1OrLater as i, createTerraformRunner as j };
 //# sourceMappingURL=terraform.mjs.map
