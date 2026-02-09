@@ -1,5 +1,4 @@
 import * as core from '@actions/core';
-import { catchErrorAndSetFailed } from './handlers';
 import { IStringParser } from '../interfaces';
 import { limitInputSize, removeQuotes, sanitizeInput } from './common';
 
@@ -54,7 +53,7 @@ export class JsonArrayParser implements IStringParser {
         // Convert all items to strings and remove any quotes
         return parsed.map(item => removeQuotes(String(item)));
       }
-    } catch (e) {
+    } catch {
       // Silent fail, will be handled by the fallback parser
     }
     return [];
@@ -88,7 +87,7 @@ export class EscapedJsonParser implements IStringParser {
           });
         }
       }
-    } catch (e) {
+    } catch {
       // Silent fail, will be handled by the fallback parser
     }
     return [];
@@ -141,9 +140,8 @@ export class CommaParser implements IStringParser {
 export function parseJsonToObject<T>(jsonString: string): T {
   try {
     return JSON.parse(jsonString) as T;
-  } catch (error) {
-    catchErrorAndSetFailed(error);
-    throw new Error('Invalid JSON string');
+  } catch {
+    throw new Error(`Failed to parse JSON: ${jsonString}`);
   }
 }
 
@@ -167,44 +165,25 @@ function createParsers(): IStringParser[] {
  * @param input - The input to parse
  * @returns Parsed array or empty array if parsing fails
  */
-function parseArrayFailFast(input: any): string[] {
+function parseArrayFailFast(input: unknown): string[] {
   try {
     if (input === null || input === undefined) {
       return [];
     }
-    return JSON.parse(input);
-  } catch (error) {
-    catchErrorAndSetFailed(error);
+    return JSON.parse(String(input));
+  } catch {
+    core.warning(`Failed to parse JSON array: ${String(input)}`);
     return [];
   }
 }
 
 /**
- * Parses a formatted string actions into a string array
- * Following SOLID principles:
- * - Single Responsibility: Each parser class has one job
- * - Open/Closed: New parsers can be added without modifying existing code
- * - Liskov Substitution: All parsers implement the StringParser interface
- * - Interface Segregation: Lean interfaces with only needed methods
- * - Dependency Inversion: High-level parseFormattedString doesn't depend on parser details
- *
- * And KISS principles:
- * - Each parser does one simple thing
- * - Clear control flow with early returns
- * - No deep nesting of conditionals
- * - Descriptive naming
- * - Helper function for common tasks
- *
- * @param input - A string or string array to parse
- * @returns An array of strings
- */
-/**
  * Parses a formatted string or array input into a string array using various parsing strategies.
  * Handles multiple input formats including JSON arrays, escaped JSON, newline-separated, and comma-separated values.
- * @param input - A string, string array, or any other input to parse
+ * @param input - A string, string array, or other input to parse
  * @returns Promise resolving to an array of strings
  */
-export async function parseFormattedString(input: any): Promise<string[]> {
+export async function parseFormattedString(input: unknown): Promise<string[]> {
   const result: string[] = parseArrayFailFast(input);
 
   if (result.length > 0) {

@@ -7,11 +7,11 @@ import {
   parseFormattedString,
   parseJsonToObject,
 } from './parsers';
-import * as handlers from './handlers';
+import * as core from '@actions/core';
 import * as common from './common';
 
 // Mock dependencies
-jest.mock('./handlers');
+jest.mock('@actions/core');
 jest.mock('./common');
 
 describe('Parsers', () => {
@@ -172,9 +172,8 @@ describe('Parsers', () => {
 
     test('throws error on invalid JSON', () => {
       expect(() => {
-        parseJsonToObject<{}>('invalid json');
-      }).toThrow('Invalid JSON string');
-      expect(handlers.catchErrorAndSetFailed).toHaveBeenCalled();
+        parseJsonToObject<Record<string, unknown>>('invalid json');
+      }).toThrow('Failed to parse JSON: invalid json');
     });
   });
 
@@ -240,7 +239,7 @@ describe('Parsers', () => {
       spy.mockReturnValueOnce(['fallback', 'result']);
 
       const result = await parseFormattedString('unparseable');
-      expect(handlers.catchErrorAndSetFailed).toHaveBeenCalled();
+      expect(core.warning).toHaveBeenCalled();
       expect(result).toEqual(['fallback', 'result']);
 
       mockJsonParse.mockRestore();
