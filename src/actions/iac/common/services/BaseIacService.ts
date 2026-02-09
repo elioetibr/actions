@@ -4,9 +4,19 @@ import { BaseIacArgumentBuilder } from './BaseIacArgumentBuilder';
 import { BaseIacStringFormatter } from './BaseIacStringFormatter';
 
 /**
- * Abstract base service implementation for IaC operations
- * Contains all shared state management (17 fields, 18 getters, 24 setters)
- * Subclasses implement factory methods for argument builder and string formatter
+ * Abstract base service implementation for IaC operations.
+ *
+ * This class is intentionally large (~390 lines) because it consolidates all
+ * 17 shared IaC fields into a single Template Method hierarchy. Each section
+ * is a mechanical pattern:
+ *
+ * - Read-only getters (18): one-liner property accessors
+ * - Mutators (24): one-liner setters returning `this` for chaining
+ * - Utility methods: clone() and reset() for lifecycle management
+ *
+ * Subclasses (TerraformService, TerragruntService) only implement factory
+ * methods and tool-specific state. Splitting this class would scatter
+ * related state without reducing actual complexity.
  */
 export abstract class BaseIacService implements IIacService {
   // Core configuration

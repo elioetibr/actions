@@ -3,27 +3,38 @@ import type { IVersionResolver, IVersionInstaller, VersionSpec } from '../../lib
 import type { IIacBuilder } from '../../actions/iac/common/interfaces';
 import type { IIacService } from '../../actions/iac/common/interfaces';
 
-/**
- * Shared settings common to both Terraform and Terragrunt runners.
- * Captures the 17 fields that appear identically in both ITerraformSettings
- * and ITerragruntSettings.
- */
 export interface ISharedIacSettings {
+  /** IaC subcommand to execute (e.g. 'plan', 'apply', 'destroy', 'init') */
   readonly command: string;
+  /** Directory containing the IaC configuration files */
   readonly workingDirectory: string;
+  /** Key-value variable overrides passed via -var flags */
   readonly variables: Record<string, string>;
+  /** Paths to .tfvars files passed via -var-file flags */
   readonly varFiles: string[];
+  /** Key-value backend configuration overrides for init -backend-config */
   readonly backendConfig: Record<string, string>;
+  /** Resource addresses to target via -target flags */
   readonly targets: string[];
+  /** Auto-approve apply/destroy without prompting */
   readonly autoApprove: boolean;
+  /** Path to a plan file (input for apply, output for plan -out) */
   readonly planFile: string;
+  /** Disable color output */
   readonly noColor: boolean;
+  /** Reduce warning verbosity */
   readonly compactWarnings: boolean;
+  /** Max concurrent operations (-parallelism); empty string means default */
   readonly parallelism: string;
+  /** Duration to wait for state lock (e.g. '30s') */
   readonly lockTimeout: string;
+  /** 'false' disables resource refresh during plan/apply */
   readonly refresh: string;
+  /** Reconfigure backend during init, ignoring saved config */
   readonly reconfigure: boolean;
+  /** Migrate state to new backend during init */
   readonly migrateState: boolean;
+  /** Log the command without executing it */
   readonly dryRun: boolean;
 }
 
