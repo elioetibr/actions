@@ -32,7 +32,7 @@ export class GitHubContextService implements IGitHubContextService {
     }
 
     const defaultBranch = context.payload?.repository?.['default_branch'] || 'main';
-    const ref = context.ref || '';
+    const ref = context.ref;
     const refName = ref.replace(/^refs\/(heads\/|tags\/|pull\/)?/, '');
 
     return {

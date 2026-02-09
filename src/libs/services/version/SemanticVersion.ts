@@ -118,7 +118,7 @@ export class SemanticVersionService
       /\${/, // JNDI injection attempts
       /^\d+$/, // plain numbers (not valid semver)
       /^[a-zA-Z]+$/, // plain strings (platform/arch strings)
-      /[^\w\.\-\+]/, // special characters not allowed in semver
+      /[^\w.\-+]/, // special characters not allowed in semver
     ];
 
     for (const pattern of suspiciousPatterns) {
@@ -138,22 +138,11 @@ export class SemanticVersionService
       throw new Error('Given Semantic Version is not valid');
     }
 
-    // Extract components - handle different regex capture groups
-    let majorStr: string, minorStr: string, patchStr: string, suffix: string;
-
-    if (regex === this.config.customRegex && this.config.customRegex) {
-      // For custom regex, assume it captures major, minor, patch in first 3 groups
-      majorStr = match[1] || '';
-      minorStr = match[2] || '';
-      patchStr = match[3] || '';
-      suffix = match[4] || '';
-    } else {
-      // For default SIMPLE_SEMVER_REGEX
-      majorStr = match[1] || '';
-      minorStr = match[2] || '';
-      patchStr = match[3] || '';
-      suffix = match[4] || '';
-    }
+    // Extract components from regex capture groups
+    const majorStr = match[1] || '';
+    const minorStr = match[2] || '';
+    const patchStr = match[3] || '';
+    const suffix = match[4] || '';
 
     // Validate that we have all required components
     if (!majorStr || !minorStr || !patchStr) {
