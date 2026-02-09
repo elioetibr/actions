@@ -1,4 +1,4 @@
-import { ValidationUtils } from '../../../libs/utils';
+import { addUnique, ValidationUtils } from '../../../libs/utils';
 import { IIacBuilder, IIacService } from './interfaces';
 
 /**
@@ -83,9 +83,7 @@ export abstract class BaseIacBuilder<
 
   withVarFile(filePath: string): this {
     ValidationUtils.validateStringInput(filePath, 'var file path');
-    if (!this._varFiles.includes(filePath)) {
-      this._varFiles.push(filePath);
-    }
+    addUnique(this._varFiles, filePath);
     return this;
   }
 
@@ -111,9 +109,7 @@ export abstract class BaseIacBuilder<
 
   withTarget(target: string): this {
     ValidationUtils.validateStringInput(target, 'target');
-    if (!this._targets.includes(target)) {
-      this._targets.push(target);
-    }
+    addUnique(this._targets, target);
     return this;
   }
 

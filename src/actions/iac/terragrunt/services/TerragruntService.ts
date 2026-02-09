@@ -1,3 +1,4 @@
+import { addUnique, removeItem } from '../../../../libs/utils';
 import { BaseIacService } from '../../common/services/BaseIacService';
 import { ITerragruntService, TerragruntCommand } from '../interfaces';
 import { TerragruntArgumentBuilder } from './TerragruntArgumentBuilder';
@@ -163,17 +164,12 @@ export class TerragruntService extends BaseIacService implements ITerragruntServ
   }
 
   addIncludeDir(directory: string): this {
-    if (!this._includeDirs.includes(directory)) {
-      this._includeDirs.push(directory);
-    }
+    addUnique(this._includeDirs, directory);
     return this;
   }
 
   removeIncludeDir(directory: string): this {
-    const index = this._includeDirs.indexOf(directory);
-    if (index !== -1) {
-      this._includeDirs.splice(index, 1);
-    }
+    removeItem(this._includeDirs, directory);
     return this;
   }
 
@@ -183,17 +179,12 @@ export class TerragruntService extends BaseIacService implements ITerragruntServ
   }
 
   addExcludeDir(directory: string): this {
-    if (!this._excludeDirs.includes(directory)) {
-      this._excludeDirs.push(directory);
-    }
+    addUnique(this._excludeDirs, directory);
     return this;
   }
 
   removeExcludeDir(directory: string): this {
-    const index = this._excludeDirs.indexOf(directory);
-    if (index !== -1) {
-      this._excludeDirs.splice(index, 1);
-    }
+    removeItem(this._excludeDirs, directory);
     return this;
   }
 

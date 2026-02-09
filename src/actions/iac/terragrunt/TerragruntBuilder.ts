@@ -1,4 +1,4 @@
-import { ValidationUtils } from '../../../libs/utils';
+import { addUnique, ValidationUtils } from '../../../libs/utils';
 import { BaseIacBuilder } from '../common/BaseIacBuilder';
 import {
   ITerragruntBuilder,
@@ -150,9 +150,7 @@ export class TerragruntBuilder
 
   withIncludeDir(directory: string): this {
     ValidationUtils.validateStringInput(directory, 'include directory');
-    if (!this._includeDirs.includes(directory)) {
-      this._includeDirs.push(directory);
-    }
+    addUnique(this._includeDirs, directory);
     return this;
   }
 
@@ -165,9 +163,7 @@ export class TerragruntBuilder
 
   withExcludeDir(directory: string): this {
     ValidationUtils.validateStringInput(directory, 'exclude directory');
-    if (!this._excludeDirs.includes(directory)) {
-      this._excludeDirs.push(directory);
-    }
+    addUnique(this._excludeDirs, directory);
     return this;
   }
 

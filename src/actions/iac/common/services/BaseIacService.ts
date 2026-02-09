@@ -1,3 +1,4 @@
+import { addUnique, removeItem } from '../../../../libs/utils';
 import { IIacService } from '../interfaces';
 import { BaseIacArgumentBuilder } from './BaseIacArgumentBuilder';
 import { BaseIacStringFormatter } from './BaseIacStringFormatter';
@@ -39,7 +40,7 @@ export abstract class BaseIacService implements IIacService {
   private _argumentBuilder: BaseIacArgumentBuilder | undefined;
   private _stringFormatter: BaseIacStringFormatter | undefined;
 
-  protected constructor(command: string, executor: string, workingDirectory: string = '.') {
+  protected constructor(command: string, executor: string, workingDirectory: string) {
     this._command = command;
     this._executor = executor;
     this._workingDirectory = workingDirectory;
@@ -200,17 +201,12 @@ export abstract class BaseIacService implements IIacService {
   }
 
   addVarFile(filePath: string): this {
-    if (!this._varFiles.includes(filePath)) {
-      this._varFiles.push(filePath);
-    }
+    addUnique(this._varFiles, filePath);
     return this;
   }
 
   removeVarFile(filePath: string): this {
-    const index = this._varFiles.indexOf(filePath);
-    if (index !== -1) {
-      this._varFiles.splice(index, 1);
-    }
+    removeItem(this._varFiles, filePath);
     return this;
   }
 
@@ -235,17 +231,12 @@ export abstract class BaseIacService implements IIacService {
   }
 
   addTarget(target: string): this {
-    if (!this._targets.includes(target)) {
-      this._targets.push(target);
-    }
+    addUnique(this._targets, target);
     return this;
   }
 
   removeTarget(target: string): this {
-    const index = this._targets.indexOf(target);
-    if (index !== -1) {
-      this._targets.splice(index, 1);
-    }
+    removeItem(this._targets, target);
     return this;
   }
 
