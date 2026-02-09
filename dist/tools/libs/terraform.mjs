@@ -378,11 +378,7 @@ class TerraformArgumentBuilder extends BaseIacArgumentBuilder {
    * @returns Full command array ready for execution
    */
   buildCommand() {
-    return [
-      this.provider.executor,
-      this.provider.command,
-      ...this.toCommandArgs()
-    ];
+    return [this.provider.executor, this.provider.command, ...this.toCommandArgs()];
   }
 }
 
@@ -825,7 +821,9 @@ class TerraformBuilder extends BaseIacBuilder {
   // ============ Build ============
   build() {
     if (!this._command) {
-      throw new Error("Terraform command is required. Use withCommand() or a static factory method.");
+      throw new Error(
+        "Terraform command is required. Use withCommand() or a static factory method."
+      );
     }
     const service = new TerraformService(this._command, this._workingDirectory);
     this.transferSharedState(service);

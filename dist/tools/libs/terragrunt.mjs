@@ -52,12 +52,7 @@ class TerragruntArgumentBuilder extends BaseIacArgumentBuilder {
   buildCommand() {
     const command = this.provider.command;
     if (this.provider.runAll && this.isTerraformCommand(command)) {
-      return [
-        this.provider.executor,
-        "run-all",
-        command,
-        ...this.toCommandArgs()
-      ];
+      return [this.provider.executor, "run-all", command, ...this.toCommandArgs()];
     }
     return [this.provider.executor, command, ...this.toCommandArgs()];
   }
@@ -81,10 +76,7 @@ class TerragruntArgumentBuilder extends BaseIacArgumentBuilder {
       args.push("--terragrunt-non-interactive");
     }
     if (this.provider.runAll && this.provider.terragruntParallelism !== void 0) {
-      args.push(
-        "--terragrunt-parallelism",
-        String(this.provider.terragruntParallelism)
-      );
+      args.push("--terragrunt-parallelism", String(this.provider.terragruntParallelism));
     }
     for (const dir of this.provider.includeDirs) {
       args.push("--terragrunt-include-dir", dir);
@@ -114,10 +106,7 @@ class TerragruntArgumentBuilder extends BaseIacArgumentBuilder {
       args.push("--terragrunt-iam-role", this.provider.iamRole);
     }
     if (this.provider.iamRoleSessionName) {
-      args.push(
-        "--terragrunt-iam-role-session-name",
-        this.provider.iamRoleSessionName
-      );
+      args.push("--terragrunt-iam-role-session-name", this.provider.iamRoleSessionName);
     }
     if (this.provider.strictInclude) {
       args.push("--terragrunt-strict-include");
@@ -594,10 +583,7 @@ class TerragruntBuilder extends BaseIacBuilder {
         "Terragrunt command is required. Use withCommand() or a static factory method."
       );
     }
-    const service = new TerragruntService(
-      this._command,
-      this._workingDirectory
-    );
+    const service = new TerragruntService(this._command, this._workingDirectory);
     this.transferSharedState(service);
     service.setTerragruntConfig(this._terragruntConfig);
     service.setTerragruntWorkingDir(this._terragruntWorkingDir);
