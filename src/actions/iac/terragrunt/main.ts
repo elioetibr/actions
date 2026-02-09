@@ -100,7 +100,10 @@ export async function run(): Promise<void> {
     }
 
     if (parallelism) {
-      builder.withParallelism(parseInt(parallelism, 10));
+      const value = parseInt(parallelism, 10);
+      if (!isNaN(value)) {
+        builder.withParallelism(value);
+      }
     }
 
     if (lockTimeout) {
@@ -141,7 +144,10 @@ export async function run(): Promise<void> {
     }
 
     if (terragruntParallelism) {
-      builder.withTerragruntParallelism(parseInt(terragruntParallelism, 10));
+      const value = parseInt(terragruntParallelism, 10);
+      if (!isNaN(value)) {
+        builder.withTerragruntParallelism(value);
+      }
     }
 
     if (includeDirs.length > 0) {
@@ -214,7 +220,14 @@ export async function run(): Promise<void> {
       let stdout = '';
       let stderr = '';
 
-      const exitCode = await exec(commandArgs[0]!, commandArgs.slice(1), {
+      const [cmd, ...cmdArgs] = commandArgs;
+      if (!cmd) {
+        core.setFailed('Terragrunt produced an empty command');
+        return;
+      }
+
+      // Safe: @actions/exec uses execFile internally
+      const exitCode = await exec(cmd, cmdArgs, {
         cwd: workingDirectory,
         listeners: {
           stdout: (data: Buffer) => {

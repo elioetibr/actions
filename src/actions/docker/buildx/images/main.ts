@@ -115,7 +115,14 @@ export async function run(): Promise<void> {
 
       // @actions/exec uses execFile internally (not shell), and arguments
       // come from the validated builder pattern - safe from injection
-      const exitCode = await exec(createCommand[0]!, createCommand.slice(1), {
+      const [createCmd, ...createArgs] = createCommand;
+      if (!createCmd) {
+        core.setFailed('Docker BuildX ImageTools produced an empty create command');
+        return;
+      }
+
+      // @actions/exec — safe via execFile, not shell
+      const exitCode = await exec(createCmd, createArgs, {
         ignoreReturnCode: true,
       });
 
@@ -125,7 +132,15 @@ export async function run(): Promise<void> {
       }
 
       core.info('Manifest created successfully. Inspecting...');
-      await exec(inspectCommand[0]!, inspectCommand.slice(1), {
+
+      const [inspectCmd, ...inspectArgs] = inspectCommand;
+      if (!inspectCmd) {
+        core.setFailed('Docker BuildX ImageTools produced an empty inspect command');
+        return;
+      }
+
+      // @actions/exec — safe via execFile, not shell
+      await exec(inspectCmd, inspectArgs, {
         ignoreReturnCode: true,
       });
     }

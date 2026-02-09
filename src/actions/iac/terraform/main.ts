@@ -74,7 +74,10 @@ export async function run(): Promise<void> {
     }
 
     if (parallelism) {
-      builder.withParallelism(parseInt(parallelism, 10));
+      const value = parseInt(parallelism, 10);
+      if (!isNaN(value)) {
+        builder.withParallelism(value);
+      }
     }
 
     if (lockTimeout) {
@@ -119,7 +122,14 @@ export async function run(): Promise<void> {
       let stdout = '';
       let stderr = '';
 
-      const exitCode = await exec(commandArgs[0]!, commandArgs.slice(1), {
+      const [cmd, ...cmdArgs] = commandArgs;
+      if (!cmd) {
+        core.setFailed('Terraform produced an empty command');
+        return;
+      }
+
+      // IAgent.exec — safe via @actions/exec (execFile, not shell)
+      const exitCode = await exec(cmd, cmdArgs, {
         cwd: workingDirectory,
         listeners: {
           stdout: (data: Buffer) => {

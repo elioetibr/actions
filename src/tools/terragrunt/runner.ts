@@ -1,6 +1,11 @@
-import type { IAgent, IRunnerResult } from '../../agents/interfaces';
-import { RunnerBase } from '../common/runner-base';
-import { TerragruntBuilder } from '../../actions/iac/terragrunt/TerragruntBuilder';
+import type { IAgent, IRunnerResult } from '../../agents';
+import {
+  RunnerBase,
+  setupToolVersion,
+  configureSharedIacBuilder,
+  executeIacCommand,
+} from '../common';
+import { TerragruntBuilder } from '../../actions/iac/terragrunt';
 import { getSettings, type ITerragruntSettings } from './settings';
 import {
   TerraformVersionResolver,
@@ -11,11 +16,6 @@ import {
   detectTerragruntVersion,
   isV1OrLater,
 } from '../../libs/version-manager';
-import {
-  setupToolVersion,
-  configureSharedIacBuilder,
-  executeIacCommand,
-} from '../common/iac-helpers';
 
 // Module-level singletons — reused across invocations within the same action run
 const fileReader = new VersionFileReader();
@@ -116,9 +116,9 @@ export class TerragruntRunner extends RunnerBase {
    * Build the Terragrunt service from settings
    */
   private buildService(settings: ITerragruntSettings, terragruntMajorVersion: number) {
-    const builder = TerragruntBuilder.create(settings.command)
-      .withWorkingDirectory(settings.workingDirectory)
-      .withTerragruntMajorVersion(terragruntMajorVersion);
+    const builder = TerragruntBuilder.create(settings.command);
+    builder.withWorkingDirectory(settings.workingDirectory);
+    builder.withTerragruntMajorVersion(terragruntMajorVersion);
 
     // Apply shared IaC settings
     configureSharedIacBuilder(builder, settings);
@@ -143,7 +143,10 @@ export class TerragruntRunner extends RunnerBase {
       builder.withNoAutoRetry();
     }
     if (settings.terragruntParallelism) {
-      builder.withTerragruntParallelism(parseInt(settings.terragruntParallelism, 10));
+      const value = parseInt(settings.terragruntParallelism, 10);
+      if (!isNaN(value)) {
+        builder.withTerragruntParallelism(value);
+      }
     }
     if (settings.includeDirs.length > 0) {
       builder.withIncludeDirs(settings.includeDirs);

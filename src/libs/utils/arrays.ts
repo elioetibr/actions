@@ -1,5 +1,8 @@
 /**
  * Add an item to an array only if it is not already present.
+ * Uses `Array.includes()` for lookup — O(n) per call. Suitable for small
+ * collections (CLI flag lists, file paths). For large or hot-path sets,
+ * prefer a `Set<T>` instead.
  * @param array - The target array (mutated in place)
  * @param item  - The item to add
  */

@@ -100,7 +100,10 @@ export function configureSharedIacBuilder<T extends IIacBuilder<IIacService>>(
     builder.withCompactWarnings();
   }
   if (settings.parallelism) {
-    builder.withParallelism(parseInt(settings.parallelism, 10));
+    const value = parseInt(settings.parallelism, 10);
+    if (!isNaN(value)) {
+      builder.withParallelism(value);
+    }
   }
   if (settings.lockTimeout) {
     builder.withLockTimeout(settings.lockTimeout);
@@ -157,8 +160,13 @@ export async function executeIacCommand(
     });
   }
 
-  // IAgent.exec — safe execution via @actions/exec (execFile, not shell)
-  const result = await agent.exec(commandArgs[0]!, commandArgs.slice(1), {
+  const [cmd, ...cmdArgs] = commandArgs;
+  if (!cmd) {
+    return failureFn(new Error(`${toolLabel} produced an empty command`));
+  }
+
+  // Safe: IAgent wraps @actions/exec internally
+  const result = await agent.exec(cmd, cmdArgs, {
     cwd: settings.workingDirectory,
     ignoreReturnCode: true,
   });
