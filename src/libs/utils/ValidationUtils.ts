@@ -7,7 +7,7 @@ export class ValidationUtils {
    * @param input - The value to check
    * @returns true if the value is null or undefined
    */
-  static isNullOrUndefined(input: any): boolean {
+  static isNullOrUndefined(input: unknown): input is null | undefined {
     return input === undefined || input === null;
   }
 
