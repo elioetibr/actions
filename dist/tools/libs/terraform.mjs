@@ -1,10 +1,10 @@
+import { V as ValidationUtils, a as addUnique, r as removeItem, p as parseCommaSeparated, b as parseJsonObject } from './docker-buildx-images.mjs';
+import './agents.mjs';
 import { existsSync } from 'node:fs';
 import { readFile, mkdir, writeFile, unlink, chmod } from 'node:fs/promises';
 import { resolve, join, dirname } from 'node:path';
 import { homedir } from 'node:os';
-import { R as RunnerBase } from './tools.mjs';
-import { V as ValidationUtils, p as parseCommaSeparated, a as parseJsonObject } from './docker-buildx-images.mjs';
-import './agents.mjs';
+import { R as RunnerBase, s as setupToolVersion, c as configureSharedIacBuilder, e as executeIacCommand } from './tools.mjs';
 
 class BaseIacBuilder {
   // Core configuration
@@ -64,9 +64,7 @@ class BaseIacBuilder {
   }
   withVarFile(filePath) {
     ValidationUtils.validateStringInput(filePath, "var file path");
-    if (!this._varFiles.includes(filePath)) {
-      this._varFiles.push(filePath);
-    }
+    addUnique(this._varFiles, filePath);
     return this;
   }
   withVarFiles(filePaths) {
@@ -88,9 +86,7 @@ class BaseIacBuilder {
   }
   withTarget(target) {
     ValidationUtils.validateStringInput(target, "target");
-    if (!this._targets.includes(target)) {
-      this._targets.push(target);
-    }
+    addUnique(this._targets, target);
     return this;
   }
   withTargets(targets) {
@@ -413,7 +409,7 @@ class BaseIacService {
   // Internal services (lazy-initialized)
   _argumentBuilder;
   _stringFormatter;
-  constructor(command, executor, workingDirectory = ".") {
+  constructor(command, executor, workingDirectory) {
     this._command = command;
     this._executor = executor;
     this._workingDirectory = workingDirectory;
@@ -530,16 +526,11 @@ class BaseIacService {
     return this;
   }
   addVarFile(filePath) {
-    if (!this._varFiles.includes(filePath)) {
-      this._varFiles.push(filePath);
-    }
+    addUnique(this._varFiles, filePath);
     return this;
   }
   removeVarFile(filePath) {
-    const index = this._varFiles.indexOf(filePath);
-    if (index !== -1) {
-      this._varFiles.splice(index, 1);
-    }
+    removeItem(this._varFiles, filePath);
     return this;
   }
   clearVarFiles() {
@@ -559,16 +550,11 @@ class BaseIacService {
     return this;
   }
   addTarget(target) {
-    if (!this._targets.includes(target)) {
-      this._targets.push(target);
-    }
+    addUnique(this._targets, target);
     return this;
   }
   removeTarget(target) {
-    const index = this._targets.indexOf(target);
-    if (index !== -1) {
-      this._targets.splice(index, 1);
-    }
+    removeItem(this._targets, target);
     return this;
   }
   clearTargets() {
@@ -868,11 +854,7 @@ function getSettings(agent) {
   };
 }
 
-const SUPPORTED_PLATFORMS = /* @__PURE__ */ new Set([
-  "linux",
-  "darwin",
-  "win32"
-]);
+const SUPPORTED_PLATFORMS = /* @__PURE__ */ new Set(["linux", "darwin", "win32"]);
 const SUPPORTED_ARCHES = /* @__PURE__ */ new Set(["x64", "arm64"]);
 function getPlatform() {
   if (!SUPPORTED_PLATFORMS.has(process.platform)) {
@@ -881,9 +863,7 @@ function getPlatform() {
     );
   }
   if (!SUPPORTED_ARCHES.has(process.arch)) {
-    throw new Error(
-      `Unsupported architecture: ${process.arch}. Supported: x64 (amd64), arm64.`
-    );
+    throw new Error(`Unsupported architecture: ${process.arch}. Supported: x64 (amd64), arm64.`);
   }
   const os = process.platform === "win32" ? "windows" : process.platform;
   const arch = process.arch === "arm64" ? "arm64" : "amd64";
@@ -900,9 +880,7 @@ const TERRAGRUNT_VERSION_RE = /terragrunt\s+version\s+v(\d+)\.(\d+)\.(\d+)/i;
 function parseVersion(output, pattern, toolName) {
   const match = pattern.exec(output);
   if (!match?.[1] || !match[2] || !match[3]) {
-    throw new Error(
-      `Failed to parse ${toolName} version from output: ${output.slice(0, 200)}`
-    );
+    throw new Error(`Failed to parse ${toolName} version from output: ${output.slice(0, 200)}`);
   }
   return {
     major: parseInt(match[1], 10),
@@ -921,15 +899,9 @@ async function detectTerragruntVersion(agent) {
     ignoreReturnCode: true
   });
   if (result.exitCode !== 0) {
-    throw new Error(
-      `terragrunt --version failed (exit ${result.exitCode}): ${result.stderr}`
-    );
+    throw new Error(`terragrunt --version failed (exit ${result.exitCode}): ${result.stderr}`);
   }
-  const version = parseVersion(
-    result.stdout,
-    TERRAGRUNT_VERSION_RE,
-    "Terragrunt"
-  );
+  const version = parseVersion(result.stdout, TERRAGRUNT_VERSION_RE, "Terragrunt");
   versionCache.set("terragrunt", version);
   return version;
 }
@@ -1015,10 +987,7 @@ class TerraformVersionResolver {
       return { input: trimmed, resolved: latest, source: "latest" };
     }
     if (trimmed === "") {
-      const fileVersion = await this.fileReader.read(
-        workingDirectory,
-        versionFile
-      );
+      const fileVersion = await this.fileReader.read(workingDirectory, versionFile);
       if (fileVersion) {
         return this.resolveFileVersion(fileVersion, versionFile);
       }
@@ -1062,9 +1031,7 @@ class TerraformVersionResolver {
     const data = await response.json();
     const versions = Object.keys(data.versions).filter((v) => VERSION_REGEX$1.test(v)).sort(compareSemverDesc);
     if (versions.length === 0) {
-      throw new Error(
-        "No stable Terraform versions found in the version index"
-      );
+      throw new Error("No stable Terraform versions found in the version index");
     }
     return versions[0];
   }
@@ -1099,9 +1066,7 @@ class TerraformVersionInstaller {
       silent: true
     });
     if (result.exitCode !== 0) {
-      throw new Error(
-        `Failed to extract Terraform ${version}: ${result.stderr}`
-      );
+      throw new Error(`Failed to extract Terraform ${version}: ${result.stderr}`);
     }
     await unlink(zipPath);
     const binaryName = os === "windows" ? "terraform.exe" : "terraform";
@@ -1131,10 +1096,7 @@ class TerragruntVersionResolver {
       return { input: trimmed, resolved: latest, source: "latest" };
     }
     if (trimmed === "") {
-      const fileVersion = await this.fileReader.read(
-        workingDirectory,
-        versionFile
-      );
+      const fileVersion = await this.fileReader.read(workingDirectory, versionFile);
       if (fileVersion) {
         return this.resolveFileVersion(fileVersion, versionFile);
       }
@@ -1192,9 +1154,7 @@ class TerragruntVersionResolver {
     const tag = data.tag_name;
     const version = tag.startsWith("v") ? tag.slice(1) : tag;
     if (!VERSION_REGEX.test(version)) {
-      throw new Error(
-        `Unexpected Terragrunt latest version format: '${tag}'`
-      );
+      throw new Error(`Unexpected Terragrunt latest version format: '${tag}'`);
     }
     return version;
   }
@@ -1238,135 +1198,39 @@ const installer = new TerraformVersionInstaller();
 class TerraformRunner extends RunnerBase {
   name = "terraform";
   steps = /* @__PURE__ */ new Map([
-    ["execute", this.execute.bind(this)]
+    ["execute", this.runExecute.bind(this)]
   ]);
   /**
-   * Execute step: Build and run the Terraform command
-   * Uses the IAgent.exec() interface for safe command execution (not child_process)
+   * Execute step: Build and run the Terraform command.
+   * All command execution goes through IAgent (not child_process).
    */
-  async execute(agent) {
+  async runExecute(agent) {
     try {
       const settings = getSettings(agent);
       agent.info(`Starting Terraform ${settings.command} action...`);
-      await this.setupTerraformVersion(agent, settings);
-      const service = this.buildService(settings);
-      const commandArgs = service.buildCommand();
-      const commandString = service.toString();
-      agent.info(`Command: ${commandString}`);
-      const baseOutputs = {
-        command: settings.command,
-        "command-args": JSON.stringify(commandArgs),
-        "command-string": commandString
-      };
-      if (settings.dryRun) {
-        agent.info("Dry run mode - skipping execution");
-        return this.success({
-          ...baseOutputs,
-          "exit-code": "0",
-          stdout: "",
-          stderr: ""
-        });
-      }
-      const result = await agent.exec(commandArgs[0], commandArgs.slice(1), {
-        cwd: settings.workingDirectory,
-        ignoreReturnCode: true
-      });
-      const outputs = {
-        ...baseOutputs,
-        "exit-code": result.exitCode.toString(),
-        stdout: result.stdout,
-        stderr: result.stderr
-      };
-      if (result.exitCode !== 0) {
-        return this.failure(
-          new Error(`Terraform ${settings.command} failed with exit code ${result.exitCode}`),
-          outputs
-        );
-      }
-      return this.success(outputs);
+      await setupToolVersion(
+        agent,
+        "Terraform",
+        settings.terraformVersion,
+        settings.terraformVersionFile,
+        settings.workingDirectory,
+        resolver,
+        installer
+      );
+      const builder = TerraformBuilder.create(settings.command).withWorkingDirectory(settings.workingDirectory);
+      configureSharedIacBuilder(builder, settings);
+      const service = builder.build();
+      return await executeIacCommand(
+        agent,
+        `Terraform ${settings.command}`,
+        service,
+        settings,
+        this.success.bind(this),
+        this.failure.bind(this)
+      );
     } catch (error) {
       return this.failure(error instanceof Error ? error : new Error(String(error)));
     }
-  }
-  /**
-   * Resolve and optionally install the requested Terraform version.
-   * When 'skip' is returned the runner uses whatever terraform is on PATH.
-   */
-  async setupTerraformVersion(agent, settings) {
-    agent.startGroup("Terraform version setup");
-    try {
-      const spec = await resolver.resolve(
-        settings.terraformVersion,
-        settings.terraformVersionFile,
-        settings.workingDirectory
-      );
-      if (!spec) {
-        agent.info("Terraform version: skip (using existing PATH binary)");
-        return;
-      }
-      agent.info(
-        `Terraform version: ${spec.resolved} (source: ${spec.source})`
-      );
-      const cacheDir = await installer.install(spec.resolved, agent);
-      agent.addPath(cacheDir);
-    } finally {
-      agent.endGroup();
-    }
-  }
-  /**
-   * Build the Terraform service from settings
-   */
-  buildService(settings) {
-    const builder = TerraformBuilder.create(settings.command).withWorkingDirectory(
-      settings.workingDirectory
-    );
-    if (Object.keys(settings.variables).length > 0) {
-      builder.withVariables(settings.variables);
-    }
-    if (settings.varFiles.length > 0) {
-      builder.withVarFiles(settings.varFiles);
-    }
-    if (Object.keys(settings.backendConfig).length > 0) {
-      builder.withBackendConfigs(settings.backendConfig);
-    }
-    if (settings.targets.length > 0) {
-      builder.withTargets(settings.targets);
-    }
-    if (settings.autoApprove) {
-      builder.withAutoApprove();
-    }
-    if (settings.planFile) {
-      if (settings.command === "apply") {
-        builder.withPlanFile(settings.planFile);
-      } else if (settings.command === "plan") {
-        builder.withOutFile(settings.planFile);
-      }
-    }
-    if (settings.noColor) {
-      builder.withNoColor();
-    }
-    if (settings.compactWarnings) {
-      builder.withCompactWarnings();
-    }
-    if (settings.parallelism) {
-      builder.withParallelism(parseInt(settings.parallelism, 10));
-    }
-    if (settings.lockTimeout) {
-      builder.withLockTimeout(settings.lockTimeout);
-    }
-    if (settings.refresh === "false") {
-      builder.withoutRefresh();
-    }
-    if (settings.reconfigure) {
-      builder.withReconfigure();
-    }
-    if (settings.migrateState) {
-      builder.withMigrateState();
-    }
-    if (settings.dryRun) {
-      builder.withDryRun();
-    }
-    return builder.build();
   }
 }
 function createTerraformRunner() {

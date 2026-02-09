@@ -53,6 +53,20 @@ class CommandFormatter {
   }
 }
 
+function addUnique(array, item) {
+  if (!array.includes(item)) {
+    array.push(item);
+  }
+}
+function removeItem(array, item) {
+  const index = array.indexOf(item);
+  if (index !== -1) {
+    array.splice(index, 1);
+    return true;
+  }
+  return false;
+}
+
 var exec$1 = {};
 
 /**
@@ -275,18 +289,10 @@ class SemanticVersionService {
     if (!match) {
       throw new Error("Given Semantic Version is not valid");
     }
-    let majorStr, minorStr, patchStr, suffix;
-    if (regex === this.config.customRegex && this.config.customRegex) {
-      majorStr = match[1] || "";
-      minorStr = match[2] || "";
-      patchStr = match[3] || "";
-      suffix = match[4] || "";
-    } else {
-      majorStr = match[1] || "";
-      minorStr = match[2] || "";
-      patchStr = match[3] || "";
-      suffix = match[4] || "";
-    }
+    const majorStr = match[1] || "";
+    const minorStr = match[2] || "";
+    const patchStr = match[3] || "";
+    const suffix = match[4] || "";
     if (!majorStr || !minorStr || !patchStr) {
       throw new Error("Given Semantic Version is not valid");
     }
@@ -5042,5 +5048,5 @@ function createDockerImageToolsRunner() {
   return new DockerImageToolsRunner();
 }
 
-export { ValidationUtils as V, parseJsonObject as a, createDockerImageToolsRunner as c, parseCommaSeparated as p };
+export { ValidationUtils as V, addUnique as a, parseJsonObject as b, createDockerImageToolsRunner as c, parseCommaSeparated as p, removeItem as r };
 //# sourceMappingURL=docker-buildx-images.mjs.map
