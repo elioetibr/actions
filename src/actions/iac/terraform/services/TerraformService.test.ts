@@ -581,12 +581,33 @@ describe('TerraformService', () => {
       expect(command).toContain('-backend-config');
     });
 
+    test('plan command with refresh=false includes -refresh=false', () => {
+      const service = new TerraformService('plan');
+      service.setRefresh(false);
+
+      const command = service.buildCommand();
+      expect(command).toContain('-refresh=false');
+    });
+
+    test('apply command with refresh=false includes -refresh=false', () => {
+      const service = new TerraformService('apply');
+      service.setRefresh(false).setAutoApprove(true);
+
+      const command = service.buildCommand();
+      expect(command).toContain('-refresh=false');
+    });
+
+    test('destroy command with refresh=false includes -refresh=false', () => {
+      const service = new TerraformService('destroy');
+      service.setRefresh(false).setAutoApprove(true);
+
+      const command = service.buildCommand();
+      expect(command).toContain('-refresh=false');
+    });
+
     test('destroy command with targets', () => {
       const service = new TerraformService('destroy', './infrastructure');
-      service
-        .addTarget('module.old_resources')
-        .setAutoApprove(true)
-        .setNoColor(true);
+      service.addTarget('module.old_resources').setAutoApprove(true).setNoColor(true);
 
       const command = service.buildCommand();
 

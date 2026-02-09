@@ -40,7 +40,7 @@ export class Logger {
   /**
    * Formats a structured log message with key-value pairs
    */
-  private formatMessage(message: string, context: LogContext = {}): string {
+  private formatMessage(message: string, context: LogContext): string {
     const mergedContext = { ...this.defaultContext, ...context };
     const contextPairs = Object.entries(mergedContext)
       .filter(([, value]) => value !== undefined)

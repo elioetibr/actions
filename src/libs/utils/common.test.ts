@@ -75,7 +75,7 @@ describe('common utils', () => {
 
       expect(parseFormattedString).toHaveBeenCalledWith(mockData);
       expect(core.debug).toHaveBeenCalledWith(
-        expect.stringContaining('Generating manifest entries')
+        expect.stringContaining('Generating manifest entries'),
       );
       expect(result).toEqual(['--tag', '"image1:tag1"', '--tag', '"image2:tag2"']);
     });
@@ -96,7 +96,7 @@ describe('common utils', () => {
       const result = await processManifestImages('--tag', mockData, {
         parseInput: false,
         includePrefix: false,
-        useDebugLogging: false
+        useDebugLogging: false,
       });
 
       expect(parseFormattedString).not.toHaveBeenCalled();
@@ -166,6 +166,15 @@ describe('common utils', () => {
       expect(handleError).toHaveBeenCalledWith(expect.any(Error));
       expect(result).toEqual([]);
     });
+
+    it('should not wrap in quotes when addQuotes=false', async () => {
+      const mockImageTags = ['image1:tag1', 'image2:tag2'];
+      (parseFormattedString as jest.Mock).mockResolvedValue(mockImageTags);
+
+      const result = await processSourceImages(mockImageTags, true, { addQuotes: false });
+
+      expect(result).toEqual(['image1:tag1', 'image2:tag2']);
+    });
   });
 
   describe('removeQuotes', () => {
@@ -198,90 +207,6 @@ describe('common utils', () => {
     it('should not modify strings smaller than MAX_INPUT_SIZE', () => {
       const smallString = 'test';
       expect(limitInputSize(smallString)).toBe(smallString);
-    });
-  });
-
-  describe('processManifestImages', () => {
-    it('should generate manifest image tags with prefix', async () => {
-      const mockInputs = ['image1:tag1', 'image2:tag2'];
-
-      const result = await processManifestImages('--tag', mockInputs);
-
-      // Note: processManifestImages uses processManifestImages with useDebugLogging: false
-      expect(core.info).not.toHaveBeenCalled();
-      expect(result).toEqual(['--tag', '"image1:tag1"', '--tag', '"image2:tag2"']);
-    });
-
-    it('should skip empty items', async () => {
-      const mockInputs = ['image1:tag1', '', '  ', 'image2:tag2'];
-
-      const result = await processManifestImages('--tag', mockInputs);
-
-      expect(result).toEqual(['--tag', '"image1:tag1"', '--tag', '"image2:tag2"']);
-    });
-  });
-
-  describe('processSourceImages', () => {
-    it('should pull images and return properly formatted tags when not in dry run mode', async () => {
-      const mockImageTags = ['image1:tag1', 'image2:tag2'];
-
-      const result = await processSourceImages(mockImageTags, false);
-
-      expect(docker.exec).toHaveBeenCalledTimes(2);
-      expect(docker.exec).toHaveBeenCalledWith('docker', ['pull', 'image1:tag1']);
-      expect(docker.exec).toHaveBeenCalledWith('docker', ['pull', 'image2:tag2']);
-      expect(result).toEqual(['"image1:tag1"', '"image2:tag2"']);
-    });
-
-    it('should skip pulling images in dry run mode but return formatted tags', async () => {
-      const mockImageTags = ['image1:tag1', 'image2:tag2'];
-
-      const result = await processSourceImages(mockImageTags, true);
-
-      expect(docker.exec).not.toHaveBeenCalled();
-      expect(result).toEqual(['"image1:tag1"', '"image2:tag2"']);
-    });
-
-    it('should skip empty tags', async () => {
-      const mockImageTags = ['image1:tag1', '', '  ', 'image2:tag2'];
-
-      const result = await processSourceImages(mockImageTags, true);
-
-      expect(result).toEqual(['"image1:tag1"', '"image2:tag2"']);
-    });
-
-    it('should handle error from docker pull and continue with other tags', async () => {
-      const mockImageTags = ['image1:tag1', 'image2:tag2'];
-
-      // Make the first docker pull fail
-      (docker.exec as jest.Mock).mockImplementationOnce(() => {
-        throw new Error('Docker pull failed');
-      });
-
-      const result = await processSourceImages(mockImageTags, false);
-
-      expect(handleError).toHaveBeenCalledWith(expect.any(Error));
-      expect(result).toEqual(['"image2:tag2"']);
-    });
-
-    it('should handle non-Error exceptions', async () => {
-      const mockImageTags = ['image1:tag1', 'image2:tag2'];
-
-      // Make the first docker pull fail with a non-Error exception
-      (docker.exec as jest.Mock).mockImplementationOnce(() => {
-        throw 'Not an Error object';
-      });
-
-      const result = await processSourceImages(mockImageTags, false);
-
-      expect(handleError).toHaveBeenCalledWith('Not an Error object');
-      expect(result).toEqual(['"image2:tag2"']);
-    });
-
-    it('should handle outer try-catch errors', async () => {
-      const mockImageTags = ['image1:tag1'];
-      await processSourceImages(mockImageTags, false);
-      expect(handleError).toBeDefined();
     });
   });
 

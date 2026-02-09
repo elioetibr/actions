@@ -740,5 +740,13 @@ describe('SemanticVersionBuilder', () => {
         new SemanticVersionService(createMockProvider('1a.2b.3c'), { customRegex });
       }).toThrow('Given Semantic Version is not valid');
     });
+
+    it('should handle custom regex where major/minor groups are empty', () => {
+      // Regex with empty capture groups for major and minor — exercises || '' fallback
+      const customRegex = /^()()(\d+)(.*)$/;
+      expect(() => {
+        new SemanticVersionService(createMockProvider('3-x'), { customRegex });
+      }).toThrow('Given Semantic Version is not valid');
+    });
   });
 });
