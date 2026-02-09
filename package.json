@@ -67,7 +67,7 @@
     "vite": "^5.4.21",
     "vite-tsconfig-paths": "^4.3.2"
   },
-  "packageManager": "pnpm@10.28.2",
+  "packageManager": "pnpm@10.29.2",
   "lint-staged": {
     "*.{ts,js}": [
       "eslint --fix",
