@@ -1,14 +1,15 @@
 # GitHub Actions
 
-A monorepo of independently invocable GitHub Actions for Docker manifest creation and Infrastructure as Code (IaC) operations.
+A monorepo of independently invocable GitHub Actions for Docker manifest
+creation and Infrastructure as Code (IaC) operations.
 
 ## Available Actions
 
-| Action | Description | Usage |
-|--------|-------------|-------|
-| [Docker BuildX ImageTools](./docker/buildx/images/README.md) | Create multi-architecture Docker manifests | `elioetibr/actions/docker/buildx/images@v1` |
-| [Terraform](./iac/terraform/README.md) | Execute Terraform commands with a fluent builder API | `elioetibr/actions/iac/terraform@v1` |
-| [Terragrunt](./iac/terragrunt/README.md) | Execute Terragrunt commands with run-all support | `elioetibr/actions/iac/terragrunt@v1` |
+| Action                                                       | Description                                          | Usage                                       |
+| ------------------------------------------------------------ | ---------------------------------------------------- | ------------------------------------------- |
+| [Docker BuildX ImageTools](./docker/buildx/images/README.md) | Create multi-architecture Docker manifests           | `elioetibr/actions/docker/buildx/images@v1` |
+| [Terraform](./iac/terraform/README.md)                       | Execute Terraform commands with a fluent builder API | `elioetibr/actions/iac/terraform@v1`        |
+| [Terragrunt](./iac/terragrunt/README.md)                     | Execute Terragrunt commands with run-all support     | `elioetibr/actions/iac/terragrunt@v1`       |
 
 ## Quick Start
 
@@ -36,7 +37,9 @@ A monorepo of independently invocable GitHub Actions for Docker manifest creatio
 
 ## Architecture
 
-Follows the [GitTools/actions](https://github.com/GitTools/actions) monorepo pattern: each action has a thin `main.mjs` shim that imports from a shared compiled library.
+Follows the [GitTools/actions](https://github.com/GitTools/actions) monorepo
+pattern: each action has a thin `main.mjs` shim that imports from a shared
+compiled library.
 
 ```mermaid
 graph TB
@@ -59,7 +62,9 @@ graph TB
     C5["tools.mjs"]
   end
 
+  WF --> A1
   WF --> A2
+  WF --> A3
   A1 --> LIB
   A2 --> LIB
   A3 --> LIB
@@ -82,21 +87,21 @@ sequenceDiagram
   participant B as Builder
   participant SV as Service
 
-  W->>S: triggers action
-  S->>L: run github, terraform, execute
-  L->>A: getAgent github
-  L->>R: getRunner terraform
-  L->>R: runner.run agent, execute
-  R->>A: agent.getInput command
-  R->>B: TerraformBuilder.create plan
-  B->>B: withVariables, withTargets
-  B->>SV: build creates immutable service
-  SV->>SV: buildCommand returns args array
-  R->>A: agent dispatches command
-  A-->>R: IRunnerResult with outputs
-  R-->>L: result
-  L->>A: agent.setOutput key, value
-  L-->>S: IRunnerResult
+  W ->> S: triggers action
+  S ->> L: run [github / terraform / execute]
+  L ->> A: getAgent [github]
+  L ->> R: getRunner [terraform]
+  L ->> R: runner.run [agent / execute]
+  R ->> A: agent.getInput [command]
+  R ->> B: TerraformBuilder.create [plan]
+  B ->> B: withVariables / withTargets
+  B ->> SV: build → immutable service
+  SV ->> SV: buildCommand → args array
+  R ->> A: agent dispatches command
+  A -->> R: IRunnerResult with outputs
+  R -->> L: result
+  L ->> A: agent.setOutput [key / value]
+  L -->> S: IRunnerResult
 ```
 
 ### Repository Layout
@@ -127,11 +132,14 @@ elioetibr/actions/
 └── docs/                     # Architecture & release documentation
 ```
 
-For a detailed deep-dive into the layered architecture, design patterns, and build pipeline, see [Architecture Documentation](./docs/architecture.md).
+For a detailed deep-dive into the layered architecture, design patterns, and
+build pipeline, see [Architecture Documentation](./docs/architecture.md).
 
 ## Versioning
 
-Uses [GitVersion](https://gitversion.net/) with [conventional commits](https://www.conventionalcommits.org/) for semantic versioning. Pin at any granularity:
+Uses [GitVersion](https://gitversion.net/) with
+[conventional commits](https://www.conventionalcommits.org/) for semantic
+versioning. Pin at any granularity:
 
 ```yaml
 uses: elioetibr/actions/iac/terraform@v1       # Latest v1.x.x (recommended)
@@ -139,7 +147,8 @@ uses: elioetibr/actions/iac/terraform@v1.2     # Latest v1.2.x
 uses: elioetibr/actions/iac/terraform@v1.2.3   # Exact version
 ```
 
-Floating tags (`v1`, `v1.2`) and branches are updated on every release. See [Release Process](./docs/release-process.md) for details.
+Floating tags (`v1`, `v1.2`) and branches are updated on every release. See
+[Release Process](./docs/release-process.md) for details.
 
 ## Development
 
@@ -174,19 +183,22 @@ make release         # Full pipeline: verify -> version -> changelog -> tag -> r
 
 ### Design Principles
 
-- **SOLID** - Single Responsibility, Open/Closed, Liskov Substitution, Interface Segregation, Dependency Inversion
+- **SOLID** - Single Responsibility, Open/Closed, Liskov Substitution, Interface
+  Segregation, Dependency Inversion
 - **DRY** - Shared parsers and utilities in `src/libs/`
 - **KISS** - Each action is a focused, single-purpose entry point
 - **Builder + Factory** - Fluent API for command construction
-- **Agent Abstraction** - `IAgent` interface decouples tool logic from CI/CD platform
-- **Layered Architecture** - Clear separation between builders, services, and interfaces
+- **Agent Abstraction** - `IAgent` interface decouples tool logic from CI/CD
+  platform
+- **Layered Architecture** - Clear separation between builders, services, and
+  interfaces
 
 ## Documentation
 
-| Document | Description |
-|----------|-------------|
-| [Architecture](./docs/architecture.md) | Layered design, patterns, build pipeline, extending guide |
-| [Release Process](./docs/release-process.md) | GitVersion + git-cliff release pipeline |
-| [Docker BuildX ImageTools](./docker/buildx/images/README.md) | Multi-arch Docker manifest action |
-| [Terraform](./iac/terraform/README.md) | Terraform action with builder API |
-| [Terragrunt](./iac/terragrunt/README.md) | Terragrunt action with run-all support |
+| Document                                                     | Description                                               |
+| ------------------------------------------------------------ | --------------------------------------------------------- |
+| [Architecture](./docs/architecture.md)                       | Layered design, patterns, build pipeline, extending guide |
+| [Release Process](./docs/release-process.md)                 | GitVersion + git-cliff release pipeline                   |
+| [Docker BuildX ImageTools](./docker/buildx/images/README.md) | Multi-arch Docker manifest action                         |
+| [Terraform](./iac/terraform/README.md)                       | Terraform action with builder API                         |
+| [Terragrunt](./iac/terragrunt/README.md)                     | Terragrunt action with run-all support                    |
