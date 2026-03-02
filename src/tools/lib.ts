@@ -1,15 +1,20 @@
-import type { IAgent, IRunner, IRunnerResult, AgentFactory, RunnerFactory } from '../agents/interfaces';
+import type {
+  IAgent,
+  IRunner,
+  IRunnerResult,
+  AgentFactory,
+  RunnerFactory,
+} from '../agents/interfaces';
 import { createGitHubActionsAgent } from '../agents/github/agent';
 import { createDockerImageToolsRunner } from './docker/imagetools/runner';
 import { createTerraformRunner } from './terraform/runner';
 import { createTerragruntRunner } from './terragrunt/runner';
+import { createDeploymentGateRunner } from './deployment-gate/runner';
 
 /**
  * Registry of available agents
  */
-const agents: Map<string, AgentFactory> = new Map([
-  ['github', createGitHubActionsAgent],
-]);
+const agents: Map<string, AgentFactory> = new Map([['github', createGitHubActionsAgent]]);
 
 /**
  * Registry of available runners
@@ -18,6 +23,7 @@ const runners: Map<string, RunnerFactory> = new Map([
   ['docker/imagetools', createDockerImageToolsRunner],
   ['terraform', createTerraformRunner],
   ['terragrunt', createTerragruntRunner],
+  ['deployment-gate', createDeploymentGateRunner],
 ]);
 
 /**
@@ -84,5 +90,11 @@ export async function run(
 }
 
 // Export types and utilities
-export type { IAgent, IRunner, IRunnerResult, AgentFactory, RunnerFactory } from '../agents/interfaces';
+export type {
+  IAgent,
+  IRunner,
+  IRunnerResult,
+  AgentFactory,
+  RunnerFactory,
+} from '../agents/interfaces';
 export { RunnerBase } from './common/runner-base';
