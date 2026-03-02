@@ -1,0 +1,66 @@
+name: 'Deployment Gate'
+description: 'Manual approval gate for deployment workflows. Creates a GitHub issue and waits for approver responses.'
+author: 'Elio Severo Junior <elio@elio.eti.br>'
+branding:
+  icon: 'shield'
+  color: 'orange'
+
+inputs:
+  approvers:
+    description: 'Comma-delimited list of GitHub usernames or org team slugs that can approve'
+    required: true
+  secret:
+    description: 'GitHub token for API access (must have issues write permission)'
+    required: true
+  minimum-approvals:
+    description: 'Minimum number of approvals required (0 = all approvers must approve)'
+    required: false
+    default: '0'
+  issue-title:
+    description: 'Custom title for the approval issue (default includes workflow run ID)'
+    required: false
+    default: ''
+  issue-body:
+    description: 'Custom body content posted as a comment on the approval issue'
+    required: false
+    default: ''
+  polling-interval-seconds:
+    description: 'Seconds between polling for approval comments'
+    required: false
+    default: '10'
+  exclude-workflow-initiator-as-approver:
+    description: 'Remove the workflow initiator from the approvers list'
+    required: false
+    default: 'false'
+  additional-approved-words:
+    description: 'Comma-separated additional words that count as approval'
+    required: false
+    default: ''
+  additional-denied-words:
+    description: 'Comma-separated additional words that count as denial'
+    required: false
+    default: ''
+  target-repository-owner:
+    description: 'Create the approval issue in a different repository (owner)'
+    required: false
+    default: ''
+  target-repository:
+    description: 'Create the approval issue in a different repository (name)'
+    required: false
+    default: ''
+  fail-on-denial:
+    description: 'Whether to fail the action when approval is denied (false = exit 0 with denied status)'
+    required: false
+    default: 'true'
+
+outputs:
+  issue-number:
+    description: 'The number of the created approval issue'
+  issue-url:
+    description: 'The HTML URL of the created approval issue'
+  approval-status:
+    description: 'The approval result: approved or denied'
+
+runs:
+  using: 'node24'
+  main: 'main.mjs'
