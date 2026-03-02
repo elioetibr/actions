@@ -1,0 +1,39 @@
+name: 'Summarize'
+description: 'Write a beautiful structured summary to the GitHub Step Summary panel'
+author: 'Elio Severo Junior <elio@elio.eti.br>'
+branding:
+  icon: 'file-text'
+  color: 'blue'
+
+inputs:
+  payload:
+    description: |
+      Summary content — auto-detected format:
+        JSON: { "title": "...", "status": "success", "sections": [...] }
+        YAML: title: "...\nstatus: success\nsections:\n  - type: table\n    ..."
+        Markdown: raw Markdown written directly (title derived from first heading)
+    required: true
+  compact:
+    description: 'Collapse non-critical sections when content exceeds compact-threshold'
+    required: false
+    default: 'true'
+  compact-threshold:
+    description: 'Character threshold that triggers compacting (default: 900000, GitHub Step Summary limit: 1048576)'
+    required: false
+    default: '900000'
+  overwrite:
+    description: 'Overwrite existing step summary instead of appending'
+    required: false
+    default: 'true'
+
+outputs:
+  character-count:
+    description: 'Number of characters written to the step summary'
+  was-compacted:
+    description: 'Whether compacting was applied (true/false)'
+  format-detected:
+    description: 'Input format detected: json | yaml | markdown'
+
+runs:
+  using: 'node24'
+  main: 'main.mjs'
