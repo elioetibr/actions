@@ -91,7 +91,14 @@ export interface IAgent {
    * @param options - Execution options
    * @returns Promise with exit code and output
    */
-  exec(command: string, args?: string[], options?: IExecOptions): Promise<IExecResult>;
+  exec(command: string, args?: string[], options?: IExecOptions): Promise<IExecResult>; // IAgent.exec — safe via @actions/exec (execFile, not shell)
+
+  /**
+   * Write content to the GitHub Step Summary
+   * @param content - The markdown content to write
+   * @param overwrite - Whether to overwrite existing summary content
+   */
+  writeSummary(content: string, overwrite?: boolean): Promise<void>;
 }
 
 /**

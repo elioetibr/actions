@@ -82,13 +82,21 @@ export class GitHubActionsAgent implements IAgent {
       },
     };
 
-    const exitCode = await exec.exec(command, args, execOptions);
+    const exitCode = await exec.exec(command, args, execOptions); // IAgent.exec — safe via @actions/exec (execFile, not shell)
 
     return {
       exitCode,
       stdout: stdout.trim(),
       stderr: stderr.trim(),
     };
+  }
+
+  async writeSummary(content: string, overwrite = true): Promise<void> {
+    // core.summary API: buffer content → write to GITHUB_STEP_SUMMARY file
+    // Ref: @actions/core/lib/summary.d.ts
+    core.summary.addRaw(content);
+    await core.summary.write({ overwrite });
+    core.summary.emptyBuffer();
   }
 }
 
