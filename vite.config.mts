@@ -80,6 +80,7 @@ export default defineConfig({
           if (id.includes('src/tools/terraform/')) return 'terraform';
           if (id.includes('src/tools/terragrunt/')) return 'terragrunt';
           if (id.includes('src/tools/deployment-gate/')) return 'deployment-gate';
+          if (id.includes('src/tools/summarize/')) return 'summarize';
           if (id.includes('src/tools/common/')) return 'tools';
           if (id.includes('src/agents/')) return 'agents';
         },

@@ -10,6 +10,7 @@ import { createDockerImageToolsRunner } from './docker/imagetools/runner';
 import { createTerraformRunner } from './terraform/runner';
 import { createTerragruntRunner } from './terragrunt/runner';
 import { createDeploymentGateRunner } from './deployment-gate/runner';
+import { createSummarizeRunner } from './summarize/runner';
 
 /**
  * Registry of available agents
@@ -24,6 +25,7 @@ const runners: Map<string, RunnerFactory> = new Map([
   ['terraform', createTerraformRunner],
   ['terragrunt', createTerragruntRunner],
   ['deployment-gate', createDeploymentGateRunner],
+  ['summarize', createSummarizeRunner],
 ]);
 
 /**
