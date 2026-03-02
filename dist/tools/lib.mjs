@@ -2,15 +2,15 @@ import { d as createGitHubActionsAgent } from './libs/agents.mjs';
 import { c as createDockerImageToolsRunner } from './libs/docker-buildx-images.mjs';
 import { j as createTerraformRunner } from './libs/terraform.mjs';
 import { c as createTerragruntRunner } from './libs/terragrunt.mjs';
+import { c as createDeploymentGateRunner } from './libs/deployment-gate.mjs';
 export { R as RunnerBase } from './libs/tools.mjs';
 
-const agents = /* @__PURE__ */ new Map([
-  ["github", createGitHubActionsAgent]
-]);
+const agents = /* @__PURE__ */ new Map([["github", createGitHubActionsAgent]]);
 const runners = /* @__PURE__ */ new Map([
   ["docker/imagetools", createDockerImageToolsRunner],
   ["terraform", createTerraformRunner],
-  ["terragrunt", createTerragruntRunner]
+  ["terragrunt", createTerragruntRunner],
+  ["deployment-gate", createDeploymentGateRunner]
 ]);
 function getAgent(name) {
   const factory = agents.get(name);
