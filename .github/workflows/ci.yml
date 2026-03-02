@@ -43,6 +43,25 @@ jobs:
           fetch-depth: 0
           token: ${{ steps.app-token.outputs.token || github.token }}
 
+      - name: Cache GitVersion tool
+        uses: actions/cache@v5
+        with:
+          path: |
+            /opt/hostedtoolcache/GitVersion.Tool
+            ~/.dotnet/tools
+          key: ${{ runner.os }}-${{ runner.arch }}-gitversion-${{ vars.GITVERSION_SPEC || '6.x' }}
+          restore-keys: |
+            ${{ runner.os }}-${{ runner.arch }}-gitversion-
+
+      - name: Install GitVersion
+        uses: gittools/actions/gitversion/setup@v4.2.0
+        with:
+          versionSpec: ${{ vars.GITVERSION_SPEC || '6.x' }}
+
+      - name: Calculate Semantic Version
+        id: gitversion
+        uses: gittools/actions/gitversion/execute@v4.2.0
+
       - name: Setup Node.js
         uses: actions/setup-node@v6
         with:
@@ -72,14 +91,17 @@ jobs:
           files: ./coverage/lcov.info
           fail_ci_if_error: false
 
-      # Auto-commit dist/ changes on push to main
-      - name: Commit dist/
+      # Auto-commit dist/ and version bump on push to main
+      - name: Commit dist/ and version
         if: github.event_name == 'push' && github.ref_name == github.event.repository.default_branch
+        env:
+          SEMVER: ${{ steps.gitversion.outputs.MajorMinorPatch }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add dist/
-          git diff --staged --quiet || git commit -m "dist update" && git push
+          npm version "$SEMVER" --no-git-tag-version --allow-same-version
+          git add dist/ package.json
+          git diff --staged --quiet || git commit -m "chore(release): v${SEMVER} [skip ci]" && git push
 
   release:
     name: Release
