@@ -29,8 +29,19 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/create-github-app-token@v2
+        id: app-token
+        with:
+          app-id: ${{ vars.APP_ID }}
+          owner: ${{ github.repository_owner }}
+          repositories: ${{ github.event.repository.name }}
+          private-key: ${{ secrets.PRIVATE_KEY }}
+
       - name: Checkout
         uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          token: ${{ steps.app-token.outputs.token || github.token }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v6
@@ -76,11 +87,19 @@ jobs:
     if: success() && github.event_name == 'push' && github.ref_name == github.event.repository.default_branch
     needs: [build]
     steps:
+      - uses: actions/create-github-app-token@v2
+        id: app-token
+        with:
+          app-id: ${{ vars.APP_ID }}
+          owner: ${{ github.repository_owner }}
+          repositories: ${{ github.event.repository.name }}
+          private-key: ${{ secrets.PRIVATE_KEY }}
+
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ steps.app-token.outputs.token || github.token }}
 
       - name: Cache GitVersion tool
         uses: actions/cache@v5
@@ -107,15 +126,23 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
       - name: Install git-cliff
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token || github.token }}
         uses: kenji-miyake/setup-git-cliff@v2
 
       - name: Generate changelog
         id: changelog
+        if: github.ref_name == github.event.repository.default_branch
         env:
-          VERSION: v${{ steps.gitversion.outputs.MajorMinorPatch }}
+          GH_TOKEN: ${{ steps.app-token.outputs.token || github.token }}
+          VERSION: v${{ steps.gitversion.outputs.SemVer }}
         run: |
-          # Get the previous tag for changelog generation
-          PREVIOUS_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+          # Get the previous release tag for changelog generation.
+          # Do NOT use `git describe --tags` — floating tags (v1, v1.1) and
+          # pre-release tags (v1.1.1-2) from prior runs pollute the result.
+          # Instead, query the latest GitHub Release which represents the
+          # actual last published version.
+          PREVIOUS_TAG=$(gh release list --limit 1 --json tagName --jq '.[0].tagName // empty' 2>/dev/null || echo "")
 
           if [ -n "$PREVIOUS_TAG" ]; then
             echo "Generating changelog from $PREVIOUS_TAG to HEAD"
@@ -137,7 +164,8 @@ jobs:
 
       - name: Tag
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ steps.app-token.outputs.token || github.token }}
+          SEMVER: v${{ steps.gitversion.outputs.SemVer }}
           FULL_VERSION: v${{ steps.gitversion.outputs.MajorMinorPatch }}
           MINOR_VERSION: v${{ steps.gitversion.outputs.Major }}.${{ steps.gitversion.outputs.Minor }}
           MAJOR_VERSION: v${{ steps.gitversion.outputs.Major }}
@@ -145,34 +173,49 @@ jobs:
           function tag() {
             VERSION=$1
             echo "Releasing Version: ${VERSION}"
-            TAG_EXISTS=$(git ls-remote -q --tags | grep -q "refs/tags/${VERSION}$" && echo true || echo false)
-            if [[ "${TAG_EXISTS}" == true ]]; then
-              HAS_RELEASE=$(gh release list --json tagName -q '.[].tagName' | grep -E "^(${VERSION})$" && echo true || echo false)
-              if [[ "${HAS_RELEASE}" == true ]]; then
+
+            # Delete remote tag and associated release if they exist
+            # Use refs/tags/ prefix to avoid ambiguity with branches of the same name
+            if git ls-remote --tags origin | grep -q "refs/tags/${VERSION}$"; then
+              if gh release view "${VERSION}" &>/dev/null; then
                 gh release delete --yes "${VERSION}"
               fi
-              git push origin --delete "${VERSION}"
-              git tag -d "${VERSION}"
+              git push origin --delete "refs/tags/${VERSION}"
             fi
 
+            # Delete local tag if it exists
+            git tag -d "${VERSION}" 2>/dev/null || true
+
+            # Create and push only this specific tag
             git tag -a "${VERSION}" -m "chore: Release Version ${VERSION}"
-            git push -f --tags --follow-tags
+            git push origin "refs/tags/${VERSION}"
           }
 
-          # Create full version tag (v1.2.3)
-          tag "$FULL_VERSION"
+          # Create semver tag (v1.2.3.*)
+          tag "$SEMVER"
 
-          # Create/update major.minor tag (v1.2)
-          tag "$MINOR_VERSION"
+          if [[ "${{ github.ref_name }}" == "${{ github.event.repository.default_branch }}" ]];
+          then
+            # Create full version tag (v1.2.3)
+            tag "$FULL_VERSION"
+            
+            # Create/update major.minor tag (v1.2)
+            tag "$MINOR_VERSION"
 
-          # Create/update major tag (v1)
-          tag "$MAJOR_VERSION"
+            # Create/update major tag (v1)
+            tag "$MAJOR_VERSION"
+          fi
 
       - name: Update floating branches
+        if: github.ref_name == github.event.repository.default_branch
         env:
           MAJOR: v${{ steps.gitversion.outputs.Major }}
           MINOR: v${{ steps.gitversion.outputs.Major }}.${{ steps.gitversion.outputs.Minor }}
+          FULL_VERSION: v${{ steps.gitversion.outputs.MajorMinorPatch }}
         run: |
+          # Update full version branch (v1.0.0 -> latest vx.x.x)
+          git push origin HEAD:refs/heads/"$FULL_VERSION" --force
+
           # Update major branch (v1 -> latest v1.x.x)
           git push origin HEAD:refs/heads/"$MAJOR" --force
 
@@ -180,9 +223,10 @@ jobs:
           git push origin HEAD:refs/heads/"$MINOR" --force
 
       - name: Release
+        if: github.ref_name == github.event.repository.default_branch
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          FULL_VERSION: v${{ steps.gitversion.outputs.MajorMinorPatch }}
+          GH_TOKEN: ${{ steps.app-token.outputs.token || github.token }}
+          SEMVER: v${{ steps.gitversion.outputs.SemVer }}
         run: |
           # Clean up any draft releases
           gh release list | grep Draft | awk '{print $1}' | while read -r draft; do
@@ -191,7 +235,7 @@ jobs:
           done
 
           # Create the release with conventional commits changelog
-          gh release create "$FULL_VERSION" \
+          gh release create "$SEMVER" \
             --notes-file RELEASE_NOTES.md \
             --verify-tag \
             --latest
