@@ -1,9 +1,6 @@
 import { R as RunnerBase } from './tools.mjs';
 
-const ANSI_REGEX$1 = (
-  // eslint-disable-next-line no-control-regex
-  /[\u001B\u009B][[\]()#;?]*(?:(?:(?:(?:;[-a-zA-Z\d/#&.:=?%@~_+]*)*|[a-zA-Z\d]+(?:;[-a-zA-Z\d/#&.:=?%@~_+]*)*)?\u0007)|(?:(?:\d{1,4}(?:;\d{0,4})*)?[\dA-PR-TZcf-nq-uy=><~]))/g
-);
+const ANSI_REGEX$1 = /[\u001B\u009B][[\]()#;?]*(?:(?:(?:(?:;[-a-zA-Z\d/#&.:=?%@~_+]*)*|[a-zA-Z\d]+(?:;[-a-zA-Z\d/#&.:=?%@~_+]*)*)?\u0007)|(?:(?:\d{1,4}(?:;\d{0,4})*)?[\dA-PR-TZcf-nq-uy=><~]))/g;
 function stripAnsi$1(input) {
   return input.replace(ANSI_REGEX$1, "");
 }
@@ -4057,10 +4054,7 @@ var jsYaml = {
 	safeDump: safeDump
 };
 
-const ANSI_REGEX = (
-  // eslint-disable-next-line no-control-regex
-  /[\u001B\u009B][[\]()#;?]*(?:(?:(?:(?:;[-a-zA-Z\d/#&.:=?%@~_+]*)*|[a-zA-Z\d]+(?:;[-a-zA-Z\d/#&.:=?%@~_+]*)*)?\u0007)|(?:(?:\d{1,4}(?:;\d{0,4})*)?[\dA-PR-TZcf-nq-uy=><~]))/g
-);
+const ANSI_REGEX = /[\u001B\u009B][[\]()#;?]*(?:(?:(?:(?:;[-a-zA-Z\d/#&.:=?%@~_+]*)*|[a-zA-Z\d]+(?:;[-a-zA-Z\d/#&.:=?%@~_+]*)*)?\u0007)|(?:(?:\d{1,4}(?:;\d{0,4})*)?[\dA-PR-TZcf-nq-uy=><~]))/g;
 function stripAnsi(input) {
   return input.replace(ANSI_REGEX, "");
 }
@@ -4137,10 +4131,7 @@ class PayloadParser {
       try {
         parsed = JSON.parse(cleaned);
       } catch (err) {
-        throw new PayloadParseError(
-          `Invalid JSON: ${err.message}`,
-          "json"
-        );
+        throw new PayloadParseError(`Invalid JSON: ${err.message}`, "json");
       }
       return { payload: validatePayload(parsed, "json"), format: "json" };
     }
