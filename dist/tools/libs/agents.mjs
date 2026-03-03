@@ -37842,6 +37842,11 @@ class GitHubActionsAgent {
       stderr: stderr.trim()
     };
   }
+  async writeSummary(content, overwrite = true) {
+    coreExports.summary.addRaw(content);
+    await coreExports.summary.write({ overwrite });
+    coreExports.summary.emptyBuffer();
+  }
 }
 function createGitHubActionsAgent() {
   return new GitHubActionsAgent();

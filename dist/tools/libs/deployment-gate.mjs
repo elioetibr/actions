@@ -4105,7 +4105,7 @@ class DeploymentGateRunner extends RunnerBase {
    * Sleep for the given duration. Extracted for testability.
    */
   sleep(ms) {
-    return new Promise((resolve) => setTimeout(resolve, ms));
+    return new Promise((resolve) => setTimeout(resolve, ms).unref());
   }
 }
 function createDeploymentGateRunner() {
