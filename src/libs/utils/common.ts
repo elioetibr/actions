@@ -12,7 +12,7 @@ const dockerLogger = logger.docker;
  * @param space Number of spaces for indentation
  * @returns Pretty JSON string or error message if conversion fails
  */
-export function safePrettyJson(obj: any, space: number = 2): string {
+export function safePrettyJson(obj: unknown, space: number = 2): string {
   try {
     const jsonString = JSON.stringify(obj, null, space);
     // Escape common problematic characters
@@ -41,13 +41,9 @@ export async function processManifestImages(
     parseInput?: boolean;
     includePrefix?: boolean;
     useDebugLogging?: boolean;
-  } = {}
+  } = {},
 ): Promise<string[]> {
-  const {
-    parseInput = true,
-    includePrefix = true,
-    useDebugLogging = true
-  } = options;
+  const { parseInput = true, includePrefix = true, useDebugLogging = true } = options;
 
   const result: string[] = [];
   const inputData = parseInput ? await parseFormattedString(manifestData) : manifestData;
@@ -89,13 +85,9 @@ export async function processSourceImages(
     parseInput?: boolean;
     addQuotes?: boolean;
     pullImages?: boolean;
-  } = {}
+  } = {},
 ): Promise<string[]> {
-  const {
-    parseInput = true,
-    addQuotes = true,
-    pullImages = true
-  } = options;
+  const { parseInput = true, addQuotes = true, pullImages = true } = options;
 
   const result: string[] = [];
 
@@ -115,7 +107,7 @@ export async function processSourceImages(
               await docker.exec('docker', dockerExecArgs);
             } else {
               dockerLogger.info('DryRun: skipping docker pull', {
-                command: `docker ${dockerExecArgs.join(' ')}`
+                command: `docker ${dockerExecArgs.join(' ')}`,
               });
             }
           }
@@ -174,7 +166,7 @@ export async function generateTargetManifestImageTags(
   return processManifestImages(prefix, inputs, {
     parseInput: false,
     includePrefix: true,
-    useDebugLogging: false
+    useDebugLogging: false,
   });
 }
 
@@ -192,6 +184,6 @@ export async function generateSourceImageTagsAndPull(
   return processSourceImages(imageArchTags, dryRun, {
     parseInput: false,
     addQuotes: true,
-    pullImages: true
+    pullImages: true,
   });
 }

@@ -29,12 +29,20 @@ export class SemanticVersionInfo implements IEnhancedSemanticVersionProvider {
     public readonly semVerSuffix: string,
   ) {}
 
+  /**
+   * Resolves a version string or provider into an IEnhancedSemanticVersionProvider
+   */
+  private static resolveVersion(
+    other: IEnhancedSemanticVersionProvider | string,
+  ): IEnhancedSemanticVersionProvider {
+    return typeof other === 'string'
+      ? SemanticVersionBuilder.fromVersion(other).build().semVerInfo
+      : other;
+  }
+
   // Fluent comparison methods
   isGreaterThan(other: IEnhancedSemanticVersionProvider | string): boolean {
-    const otherInfo =
-      typeof other === 'string'
-        ? (SemanticVersionBuilder.fromVersion(other).build().semVerInfo as SemanticVersionInfo)
-        : other;
+    const otherInfo = SemanticVersionInfo.resolveVersion(other);
 
     const [thisMajor, thisMinor, thisPatch] = [+this.major, +this.minor, +this.patch];
     const [otherMajor, otherMinor, otherPatch] = [
@@ -49,26 +57,17 @@ export class SemanticVersionInfo implements IEnhancedSemanticVersionProvider {
   }
 
   isLessThan(other: IEnhancedSemanticVersionProvider | string): boolean {
-    const otherInfo =
-      typeof other === 'string'
-        ? (SemanticVersionBuilder.fromVersion(other).build().semVerInfo as SemanticVersionInfo)
-        : other;
+    const otherInfo = SemanticVersionInfo.resolveVersion(other);
     return otherInfo.isGreaterThan(this);
   }
 
   isEqualTo(other: IEnhancedSemanticVersionProvider | string): boolean {
-    const otherInfo =
-      typeof other === 'string'
-        ? (SemanticVersionBuilder.fromVersion(other).build().semVerInfo as SemanticVersionInfo)
-        : other;
+    const otherInfo = SemanticVersionInfo.resolveVersion(other);
     return this.version === otherInfo.version;
   }
 
   isCompatibleWith(other: IEnhancedSemanticVersionProvider | string): boolean {
-    const otherInfo =
-      typeof other === 'string'
-        ? (SemanticVersionBuilder.fromVersion(other).build().semVerInfo as SemanticVersionInfo)
-        : other;
+    const otherInfo = SemanticVersionInfo.resolveVersion(other);
     return this.major === otherInfo.major;
   }
 

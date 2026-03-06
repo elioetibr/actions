@@ -27,8 +27,6 @@ export interface IServiceContainer {
 
 export class ServiceBuilder {
   private readonly context: Context;
-  // @ts-ignore
-  private required: (keyof IBuildingServiceContainer)[] = [];
   private services: IBuildingServiceContainer = {};
 
   constructor(context: Context = github.context) {
@@ -40,141 +38,15 @@ export class ServiceBuilder {
     return this;
   }
 
-  // withActionInputs(): this {
-  //     this.services.actionInputsService = createActionInputsService();
-  //     return this;
-  // }
-  //
-  // withSemanticVersion(): this {
-  //     // Ensure actionInputsService exists and can be used as ISemVerProvider
-  //     if (!this.services.actionInputsService) {
-  //         throw new Error('Inputs must be built before SemanticVersionService');
-  //     }
-  //
-  //     // Cast to Inputs since we know it implements ISemVerProvider
-  //     const semVerProvider = this.services.actionInputsService as ActionInputsService;
-  //     this.services.semanticVersionService = createSemVerService(semVerProvider);
-  //     return this;
-  // }
-  //
-  // withDockerImageUri(): this {
-  //     if (
-  //         !this.services.githubContextService ||
-  //         !this.services.actionInputsService ||
-  //         !this.services.semanticVersionService
-  //     ) {
-  //         throw new Error(
-  //             'Docker Image URI service requires GitHub context, action inputs, and semantic version services'
-  //         );
-  //     }
-  //
-  //     // Cast to concrete types that implement the required interfaces
-  //     const branchProvider = this.services.githubContextService as GithubContext;
-  //     const ecrProvider = this.services.actionInputsService as ActionInputsService;
-  //     const versionProvider = this.services.semanticVersionService as SemanticVersionService;
-  //
-  //     this.services.dockerImageUriService = createDockerImageUriService(
-  //         ecrProvider,
-  //         branchProvider,
-  //         versionProvider
-  //     );
-  //     return this;
-  // }
-  //
-  // withManifestIndex(): this {
-  //     if (
-  //         !this.services.actionInputsService ||
-  //         !this.services.semanticVersionService ||
-  //         !this.services.dockerImageUriService
-  //     ) {
-  //         throw new Error(
-  //             'Manifest Index service requires action inputs, semantic version, and docker image URI services'
-  //         );
-  //     }
-  //
-  //     // Cast to concrete types that implement the required interfaces
-  //     const inputsProvider = this.services.actionInputsService as ActionInputsService;
-  //     const versionProvider = this.services.semanticVersionService as SemanticVersionService;
-  //     const imageUriProvider = this.services.dockerImageUriService as DockerImageService;
-  //
-  //     this.services.dockerManifestIndexService = createDockerManifestIndexService(
-  //         inputsProvider,
-  //         versionProvider,
-  //         imageUriProvider
-  //     );
-  //     return this;
-  // }
-  //
-  // withDockerManifestHandler(): this {
-  //     if (!this.services.dockerManifestIndexService) {
-  //         throw new Error('Docker Manifest Handler requires Manifest Index service');
-  //     }
-  //
-  //     // Cast to ManifestIndex since we know it implements IDockerManifestProvider
-  //     const inputsProvider = this.services.actionInputsService as ActionInputsService;
-  //     const manifestProvider = this.services.dockerManifestIndexService
-  //         .manifestIndex as DockerManifestIndex;
-  //     this.services.dockerManifestHandler = createDockerManifestHandlerService(
-  //         manifestProvider,
-  //         inputsProvider
-  //     );
-  //     return this;
-  // }
-  //
-  // withActionOutputs(): this {
-  //     // Fixed: Added missing ! operator for dockerImageUriService
-  //     if (
-  //         !this.services.actionInputsService ||
-  //         !this.services.dockerManifestIndexService ||
-  //         !this.services.semanticVersionService ||
-  //         !this.services.dockerImageUriService
-  //     ) {
-  //         throw new Error(
-  //             'Action Outputs service requires all prerequisite services: inputs, manifest index, semantic version, and docker image URI'
-  //         );
-  //     }
-  //
-  //     // Get the required providers
-  //     const inputsProvider = this.services.actionInputsService as ActionInputsService;
-  //     const versionProvider = this.services.semanticVersionService as SemanticVersionService;
-  //     const imageUriProvider = this.services.dockerImageUriService as DockerImageService;
-  //     const manifestProvider = this.services.dockerManifestIndexService
-  //         .manifestIndex as DockerManifestIndex;
-  //
-  //     // Fixed: Corrected parameter order to match createActionOutputsService signature
-  //     // Based on your original output.ts: (inputsProvider, versionProvider, imageUriProvider, manifestProvider)
-  //     this.services.actionOutputsService = createActionOutputsService(
-  //         inputsProvider,
-  //         versionProvider,
-  //         imageUriProvider,
-  //         manifestProvider
-  //     );
-  //     return this;
-  // }
-
   // Build all services in correct order
   buildAll(): IServiceContainer {
-    return (
-      this.withGitHubContext()
-        // .withActionInputs()
-        // .withSemanticVersion()
-        // .withDockerImageUri()
-        // .withManifestIndex()
-        // .withDockerManifestHandler()
-        // .withActionOutputs()
-        .build()
-    );
+    return this.withGitHubContext().build();
   }
 
   build(): IServiceContainer {
     const required: (keyof IBuildingServiceContainer)[] = [
       'githubContextService',
-      // 'actionInputsService',
-      // 'actionOutputsService',
       'semanticVersionService',
-      // 'dockerImageUriService',
-      // 'dockerManifestIndexService',
-      // 'dockerManifestHandler'
     ];
 
     const missing = required.filter(service => !this.services[service]);
