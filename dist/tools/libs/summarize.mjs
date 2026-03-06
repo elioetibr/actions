@@ -1,5 +1,9 @@
 import { R as RunnerBase } from './tools.mjs';
 
+function assertNever(value) {
+  throw new Error(`Unexpected value: ${JSON.stringify(value)}`);
+}
+
 const ANSI_REGEX$1 = /[\u001B\u009B][[\]()#;?]*(?:(?:(?:(?:;[-a-zA-Z\d/#&.:=?%@~_+]*)*|[a-zA-Z\d]+(?:;[-a-zA-Z\d/#&.:=?%@~_+]*)*)?\u0007)|(?:(?:\d{1,4}(?:;\d{0,4})*)?[\dA-PR-TZcf-nq-uy=><~]))/g;
 function stripAnsi$1(input) {
   return input.replace(ANSI_REGEX$1, "");
@@ -86,6 +90,9 @@ function renderSection(section) {
       return renderRaw(section);
     case "separator":
       return "<hr>\n";
+    /* istanbul ignore next -- exhaustive type guard, unreachable when all union members are handled */
+    default:
+      return assertNever(section);
   }
 }
 function isCompactEligible(section, sectionHtml) {
@@ -4083,38 +4090,45 @@ const VALID_SECTION_TYPES = /* @__PURE__ */ new Set([
   "raw",
   "separator"
 ]);
+function isRecord(value) {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
 function validatePayload(raw, format) {
-  const obj = raw;
-  if (typeof obj["title"] !== "string" || obj["title"].trim() === "") {
+  if (typeof raw["title"] !== "string" || raw["title"].trim() === "") {
     throw new PayloadParseError(`"title" must be a non-empty string`, format);
   }
-  if (obj["status"] !== void 0 && !VALID_STATUSES.has(obj["status"])) {
-    throw new PayloadParseError(
-      `"status" must be one of: ${[...VALID_STATUSES].join(", ")}`,
-      format
-    );
+  const title = raw["title"].trim();
+  let status;
+  let sections;
+  if (raw["status"] !== void 0) {
+    if (typeof raw["status"] !== "string" || !VALID_STATUSES.has(raw["status"])) {
+      throw new PayloadParseError(
+        `"status" must be one of: ${[...VALID_STATUSES].join(", ")}`,
+        format
+      );
+    }
+    status = raw["status"];
   }
-  if (obj["sections"] !== void 0) {
-    if (!Array.isArray(obj["sections"])) {
+  if (raw["sections"] !== void 0) {
+    if (!Array.isArray(raw["sections"])) {
       throw new PayloadParseError(`"sections" must be an array`, format);
     }
-    for (const section of obj["sections"]) {
-      if (typeof section !== "object" || section === null || !VALID_SECTION_TYPES.has(section["type"])) {
+    for (const section of raw["sections"]) {
+      if (!isRecord(section) || typeof section["type"] !== "string" || !VALID_SECTION_TYPES.has(section["type"])) {
         throw new PayloadParseError(
           `Each section must have a "type" field with one of: ${[...VALID_SECTION_TYPES].join(", ")}`,
           format
         );
       }
     }
+    sections = raw["sections"];
   }
-  const result = {
-    title: obj["title"].trim()
-  };
-  if (obj["status"] !== void 0) {
-    result.status = obj["status"];
+  const result = { title };
+  if (status !== void 0) {
+    result.status = status;
   }
-  if (obj["sections"] !== void 0) {
-    result.sections = obj["sections"];
+  if (sections !== void 0) {
+    result.sections = sections;
   }
   return result;
 }
@@ -4137,9 +4151,8 @@ class PayloadParser {
     }
     try {
       const parsed = jsYaml.load(cleaned);
-      if (typeof parsed === "object" && parsed !== null && !Array.isArray(parsed)) {
-        const obj = parsed;
-        if (typeof obj["title"] === "string" && obj["title"].trim() !== "") {
+      if (isRecord(parsed)) {
+        if (typeof parsed["title"] === "string" && parsed["title"].trim() !== "") {
           return { payload: validatePayload(parsed, "yaml"), format: "yaml" };
         }
       }

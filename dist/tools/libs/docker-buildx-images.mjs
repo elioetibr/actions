@@ -337,9 +337,15 @@ class SemanticVersionInfo {
     this.majorMinorPatch = majorMinorPatch;
     this.semVerSuffix = semVerSuffix;
   }
+  /**
+   * Resolves a version string or provider into an IEnhancedSemanticVersionProvider
+   */
+  static resolveVersion(other) {
+    return typeof other === "string" ? SemanticVersionBuilder.fromVersion(other).build().semVerInfo : other;
+  }
   // Fluent comparison methods
   isGreaterThan(other) {
-    const otherInfo = typeof other === "string" ? SemanticVersionBuilder.fromVersion(other).build().semVerInfo : other;
+    const otherInfo = SemanticVersionInfo.resolveVersion(other);
     const [thisMajor, thisMinor, thisPatch] = [+this.major, +this.minor, +this.patch];
     const [otherMajor, otherMinor, otherPatch] = [
       +otherInfo.major,
@@ -351,15 +357,15 @@ class SemanticVersionInfo {
     return thisPatch > otherPatch;
   }
   isLessThan(other) {
-    const otherInfo = typeof other === "string" ? SemanticVersionBuilder.fromVersion(other).build().semVerInfo : other;
+    const otherInfo = SemanticVersionInfo.resolveVersion(other);
     return otherInfo.isGreaterThan(this);
   }
   isEqualTo(other) {
-    const otherInfo = typeof other === "string" ? SemanticVersionBuilder.fromVersion(other).build().semVerInfo : other;
+    const otherInfo = SemanticVersionInfo.resolveVersion(other);
     return this.version === otherInfo.version;
   }
   isCompatibleWith(other) {
-    const otherInfo = typeof other === "string" ? SemanticVersionBuilder.fromVersion(other).build().semVerInfo : other;
+    const otherInfo = SemanticVersionInfo.resolveVersion(other);
     return this.major === otherInfo.major;
   }
   // Fluent manipulation methods (return new instances)

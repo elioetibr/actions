@@ -718,9 +718,17 @@ class TerragruntBuilder extends BaseIacBuilder {
   }
 }
 
+function validateTerragruntCommand(input) {
+  if (!TERRAGRUNT_COMMANDS.includes(input)) {
+    throw new Error(
+      `Invalid terragrunt command: "${input}". Valid commands: ${TERRAGRUNT_COMMANDS.join(", ")}`
+    );
+  }
+  return input;
+}
 function getSettings(agent) {
   return {
-    command: agent.getInput("command", true),
+    command: validateTerragruntCommand(agent.getInput("command", true)),
     workingDirectory: agent.getInput("working-directory") || ".",
     terraformVersion: agent.getInput("terraform-version"),
     terraformVersionFile: agent.getInput("terraform-version-file") || ".terraform-version",
