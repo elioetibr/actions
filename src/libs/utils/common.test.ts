@@ -47,8 +47,8 @@ describe('common utils', () => {
 
     it('should handle error when JSON stringify fails', () => {
       // Create object with circular reference
-      const circularObj: any = {};
-      circularObj.self = circularObj;
+      const circularObj: Record<string, unknown> = {};
+      circularObj['self'] = circularObj;
 
       const result = safePrettyJson(circularObj);
       expect(result).toBe('Invalid JSON object');

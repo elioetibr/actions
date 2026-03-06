@@ -100,7 +100,7 @@ describe('ActionRunner', () => {
 
 describe('run function', () => {
   let mockContext: Context;
-  let mockCreateServices: jest.MockedFunction<any>;
+  let mockCreateServices: jest.MockedFunction<typeof createServices>;
   let mockServices: jest.Mocked<IServiceContainer>;
   beforeEach(() => {
     mockContext = {

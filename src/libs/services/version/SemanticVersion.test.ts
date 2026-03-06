@@ -557,7 +557,7 @@ describe('SemanticVersionBuilder', () => {
   });
 
   describe('SemanticVersionService', () => {
-    const createProvider = (version: any) => ({ version });
+    const createProvider = (version: string) => ({ version });
 
     it('should delegate all properties to semVerInfo', () => {
       const service = new SemanticVersionService(createProvider('1.2.3'));

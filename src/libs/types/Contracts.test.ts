@@ -9,8 +9,8 @@ describe('Contracts types', () => {
       method3: () => void;
     }
 
-    // Type assertion test
-    // @ts-ignore
+    // ContractNames<T> is keyof T (a union), not an array — intentionally assigning an array to test runtime behavior
+    // @ts-expect-error assigning string[] to keyof T for runtime test
     const names: ContractNames<TestContract> = ['method1', 'method2', 'method3'];
 
     // Runtime check to ensure array contains expected values
@@ -43,11 +43,12 @@ describe('Contracts types', () => {
 
   // Test with an empty interface
   test('ContractNames should work with an empty interface', () => {
+    // eslint-disable-next-line @typescript-eslint/no-empty-object-type
     interface EmptyContract {}
 
-    // @ts-ignore
+    // @ts-expect-error assigning empty array to keyof EmptyContract (never) for runtime test
     const names: ContractNames<EmptyContract> = [];
-    // @ts-ignore
+    // @ts-expect-error accessing .length on type never for runtime test
     expect(names.length).toBe(0);
   });
 
@@ -79,16 +80,17 @@ describe('Contracts types', () => {
     }
 
     const result = getContractTypeNames<TestContract>();
-    
+
     expect(result).toEqual([]);
     expect(Array.isArray(result)).toBe(true);
   });
 
   test('getContractTypeNames should work with empty interface', () => {
+    // eslint-disable-next-line @typescript-eslint/no-empty-object-type
     interface EmptyContract {}
 
     const result = getContractTypeNames<EmptyContract>();
-    
+
     expect(result).toEqual([]);
     expect(Array.isArray(result)).toBe(true);
   });

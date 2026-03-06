@@ -4,7 +4,13 @@ import { SemanticVersionBuilder } from './SemanticVersionBuilder';
 jest.mock('./SemanticVersionBuilder');
 
 describe('SemanticVersionFactory', () => {
-  let mockBuilder: any;
+  let mockBuilder: {
+    withMaxLength: jest.Mock;
+    withControlCharacters: jest.Mock;
+    withMaxVersionNumber: jest.Mock;
+    withCustomRegex: jest.Mock;
+    build: jest.Mock;
+  };
 
   beforeEach(() => {
     mockBuilder = {

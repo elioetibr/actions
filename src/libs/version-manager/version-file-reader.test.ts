@@ -25,7 +25,7 @@ describe('VersionFileReader', () => {
 
   describe('read', () => {
     it('should find version file in the start directory', async () => {
-      mockedReadFile.mockImplementation(async (path: any) => {
+      mockedReadFile.mockImplementation(async (path: unknown) => {
         if (path === '/projects/myapp/.terraform-version') {
           return '1.9.8\n';
         }
@@ -37,7 +37,7 @@ describe('VersionFileReader', () => {
     });
 
     it('should walk up to parent directory', async () => {
-      mockedReadFile.mockImplementation(async (path: any) => {
+      mockedReadFile.mockImplementation(async (path: unknown) => {
         if (path === '/projects/.terraform-version') {
           return '1.5.7\n';
         }
@@ -49,7 +49,7 @@ describe('VersionFileReader', () => {
     });
 
     it('should walk up to grandparent directory', async () => {
-      mockedReadFile.mockImplementation(async (path: any) => {
+      mockedReadFile.mockImplementation(async (path: unknown) => {
         if (path === '/opt/.terragrunt-version') {
           return '0.75.10\n';
         }
@@ -62,7 +62,7 @@ describe('VersionFileReader', () => {
 
     it('should stop at home directory', async () => {
       const calls: string[] = [];
-      mockedReadFile.mockImplementation(async (path: any) => {
+      mockedReadFile.mockImplementation(async (path: unknown) => {
         calls.push(String(path));
         throw new Error('ENOENT');
       });
@@ -79,7 +79,7 @@ describe('VersionFileReader', () => {
     });
 
     it('should check home directory as last resort when not starting from home', async () => {
-      mockedReadFile.mockImplementation(async (path: any) => {
+      mockedReadFile.mockImplementation(async (path: unknown) => {
         if (path === '/home/user/.terraform-version') {
           return 'latest\n';
         }
@@ -92,7 +92,7 @@ describe('VersionFileReader', () => {
 
     it('should check home in both walk-up and fallback when starting from home subtree', async () => {
       const calls: string[] = [];
-      mockedReadFile.mockImplementation(async (path: any) => {
+      mockedReadFile.mockImplementation(async (path: unknown) => {
         calls.push(String(path));
         throw new Error('ENOENT');
       });
@@ -111,7 +111,7 @@ describe('VersionFileReader', () => {
     });
 
     it('should skip empty lines', async () => {
-      mockedReadFile.mockImplementation(async (path: any) => {
+      mockedReadFile.mockImplementation(async (path: unknown) => {
         if (path === '/app/.terraform-version') {
           return '\n\n1.9.8\n';
         }
@@ -123,7 +123,7 @@ describe('VersionFileReader', () => {
     });
 
     it('should skip comment lines', async () => {
-      mockedReadFile.mockImplementation(async (path: any) => {
+      mockedReadFile.mockImplementation(async (path: unknown) => {
         if (path === '/app/.terraform-version') {
           return '# This is a comment\n1.5.7\n';
         }
@@ -135,7 +135,7 @@ describe('VersionFileReader', () => {
     });
 
     it('should trim whitespace from version', async () => {
-      mockedReadFile.mockImplementation(async (path: any) => {
+      mockedReadFile.mockImplementation(async (path: unknown) => {
         if (path === '/app/.terraform-version') {
           return '  1.9.8  \n';
         }
@@ -147,7 +147,7 @@ describe('VersionFileReader', () => {
     });
 
     it('should return undefined for file with only comments and empty lines', async () => {
-      mockedReadFile.mockImplementation(async (path: any) => {
+      mockedReadFile.mockImplementation(async (path: unknown) => {
         if (path === '/app/.terraform-version') {
           return '# comment\n\n# another comment\n';
         }
@@ -161,7 +161,7 @@ describe('VersionFileReader', () => {
     });
 
     it('should handle "latest" as a valid version string', async () => {
-      mockedReadFile.mockImplementation(async (path: any) => {
+      mockedReadFile.mockImplementation(async (path: unknown) => {
         if (path === '/app/.terraform-version') {
           return 'latest\n';
         }
@@ -173,7 +173,7 @@ describe('VersionFileReader', () => {
     });
 
     it('should handle "skip" as a valid version string', async () => {
-      mockedReadFile.mockImplementation(async (path: any) => {
+      mockedReadFile.mockImplementation(async (path: unknown) => {
         if (path === '/app/.terragrunt-version') {
           return 'skip\n';
         }
@@ -188,7 +188,7 @@ describe('VersionFileReader', () => {
       mockedHomedir.mockReturnValue('/home/user');
 
       const calls: string[] = [];
-      mockedReadFile.mockImplementation(async (path: any) => {
+      mockedReadFile.mockImplementation(async (path: unknown) => {
         calls.push(String(path));
         throw new Error('ENOENT');
       });
