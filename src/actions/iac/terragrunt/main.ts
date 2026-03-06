@@ -1,7 +1,8 @@
 import * as core from '@actions/core';
 import { exec } from '@actions/exec';
 import { TerragruntBuilder } from './TerragruntBuilder';
-import { TerragruntCommand } from './interfaces';
+import { TERRAGRUNT_COMMANDS } from './interfaces';
+import type { TerragruntCommand } from './interfaces';
 import { handleError, parseCommaSeparated, parseJsonObject } from '../../../libs/utils';
 
 /**
@@ -10,7 +11,13 @@ import { handleError, parseCommaSeparated, parseJsonObject } from '../../../libs
 export async function run(): Promise<void> {
   try {
     // Get inputs - core terraform/terragrunt options
-    const command = core.getInput('command', { required: true }) as TerragruntCommand;
+    const commandInput = core.getInput('command', { required: true });
+    if (!TERRAGRUNT_COMMANDS.includes(commandInput as TerragruntCommand)) {
+      throw new Error(
+        `Invalid terragrunt command: "${commandInput}". Valid commands: ${TERRAGRUNT_COMMANDS.join(', ')}`,
+      );
+    }
+    const command = commandInput as TerragruntCommand;
     const workingDirectory = core.getInput('working-directory') || '.';
     const runAll = core.getBooleanInput('run-all');
     const variables = parseJsonObject(core.getInput('variables'));

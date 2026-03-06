@@ -1,6 +1,19 @@
 import type { IAgent } from '../../agents/interfaces';
 import type { TerragruntCommand } from '../../actions/iac/terragrunt/interfaces';
+import { TERRAGRUNT_COMMANDS } from '../../actions/iac/terragrunt/interfaces';
 import { parseCommaSeparated, parseJsonObject } from '../../libs/utils';
+
+/**
+ * Validates that a raw string is a valid TerragruntCommand
+ */
+function validateTerragruntCommand(input: string): TerragruntCommand {
+  if (!TERRAGRUNT_COMMANDS.includes(input as TerragruntCommand)) {
+    throw new Error(
+      `Invalid terragrunt command: "${input}". Valid commands: ${TERRAGRUNT_COMMANDS.join(', ')}`,
+    );
+  }
+  return input as TerragruntCommand;
+}
 
 /**
  * Input settings for Terragrunt operations
@@ -51,7 +64,7 @@ export interface ITerragruntSettings {
  */
 export function getSettings(agent: IAgent): ITerragruntSettings {
   return {
-    command: agent.getInput('command', true) as TerragruntCommand,
+    command: validateTerragruntCommand(agent.getInput('command', true)),
     workingDirectory: agent.getInput('working-directory') || '.',
     terraformVersion: agent.getInput('terraform-version'),
     terraformVersionFile: agent.getInput('terraform-version-file') || '.terraform-version',

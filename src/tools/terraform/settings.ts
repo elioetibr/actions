@@ -1,5 +1,6 @@
 import type { IAgent } from '../../agents/interfaces';
 import type { TerraformCommand } from '../../actions/iac/terraform/interfaces';
+import { TERRAFORM_COMMANDS } from '../../actions/iac/terraform/interfaces';
 import { parseCommaSeparated, parseJsonObject } from '../../libs/utils';
 
 /**
@@ -27,11 +28,23 @@ export interface ITerraformSettings {
 }
 
 /**
+ * Validates that a raw string is a valid TerraformCommand
+ */
+function validateTerraformCommand(input: string): TerraformCommand {
+  if (!TERRAFORM_COMMANDS.includes(input as TerraformCommand)) {
+    throw new Error(
+      `Invalid terraform command: "${input}". Valid commands: ${TERRAFORM_COMMANDS.join(', ')}`,
+    );
+  }
+  return input as TerraformCommand;
+}
+
+/**
  * Get Terraform settings from agent inputs
  */
 export function getSettings(agent: IAgent): ITerraformSettings {
   return {
-    command: agent.getInput('command', true) as TerraformCommand,
+    command: validateTerraformCommand(agent.getInput('command', true)),
     workingDirectory: agent.getInput('working-directory') || '.',
     terraformVersion: agent.getInput('terraform-version'),
     terraformVersionFile: agent.getInput('terraform-version-file') || '.terraform-version',

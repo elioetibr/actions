@@ -835,4 +835,20 @@ describe('terragrunt main', () => {
       jest.restoreAllMocks();
     });
   });
+
+  describe('command validation', () => {
+    test('rejects invalid command input', async () => {
+      mockGetInput.mockImplementation((name: string) => {
+        if (name === 'command') return 'invalid-command';
+        return '';
+      });
+      mockGetBooleanInput.mockReturnValue(false);
+
+      await run();
+
+      expect(mockSetFailed).toHaveBeenCalledWith(
+        expect.stringContaining('Invalid terragrunt command: "invalid-command"'),
+      );
+    });
+  });
 });
