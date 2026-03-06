@@ -1,4 +1,5 @@
 import type { IAgent } from '../../../agents/interfaces';
+import { assertNever } from '../../../libs/utils/assertNever';
 import type { ISummaryPayload } from '../interfaces/ISummaryPayload';
 import type { ISummaryWriteResult, ISummaryService } from '../interfaces/ISummaryService';
 import type {
@@ -114,6 +115,9 @@ function renderSection(section: ISummarySection): string {
       return renderRaw(section);
     case 'separator':
       return '<hr>\n';
+    /* istanbul ignore next -- exhaustive type guard, unreachable when all union members are handled */
+    default:
+      return assertNever(section);
   }
 }
 

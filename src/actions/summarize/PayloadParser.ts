@@ -48,29 +48,38 @@ const VALID_SECTION_TYPES: ReadonlySet<string> = new Set([
   'separator',
 ]);
 
-function validatePayload(raw: unknown, format: PayloadFormat): ISummaryPayload {
-  const obj = raw as Record<string, unknown>;
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
 
-  if (typeof obj['title'] !== 'string' || obj['title'].trim() === '') {
+function validatePayload(raw: Record<string, unknown>, format: PayloadFormat): ISummaryPayload {
+  if (typeof raw['title'] !== 'string' || raw['title'].trim() === '') {
     throw new PayloadParseError(`"title" must be a non-empty string`, format);
   }
 
-  if (obj['status'] !== undefined && !VALID_STATUSES.has(obj['status'] as string)) {
-    throw new PayloadParseError(
-      `"status" must be one of: ${[...VALID_STATUSES].join(', ')}`,
-      format,
-    );
+  const title = raw['title'].trim();
+  let status: SummaryStatus | undefined;
+  let sections: ISummarySection[] | undefined;
+
+  if (raw['status'] !== undefined) {
+    if (typeof raw['status'] !== 'string' || !VALID_STATUSES.has(raw['status'])) {
+      throw new PayloadParseError(
+        `"status" must be one of: ${[...VALID_STATUSES].join(', ')}`,
+        format,
+      );
+    }
+    status = raw['status'] as SummaryStatus;
   }
 
-  if (obj['sections'] !== undefined) {
-    if (!Array.isArray(obj['sections'])) {
+  if (raw['sections'] !== undefined) {
+    if (!Array.isArray(raw['sections'])) {
       throw new PayloadParseError(`"sections" must be an array`, format);
     }
-    for (const section of obj['sections'] as unknown[]) {
+    for (const section of raw['sections']) {
       if (
-        typeof section !== 'object' ||
-        section === null ||
-        !VALID_SECTION_TYPES.has((section as Record<string, unknown>)['type'] as string)
+        !isRecord(section) ||
+        typeof section['type'] !== 'string' ||
+        !VALID_SECTION_TYPES.has(section['type'])
       ) {
         throw new PayloadParseError(
           `Each section must have a "type" field with one of: ${[...VALID_SECTION_TYPES].join(', ')}`,
@@ -78,18 +87,15 @@ function validatePayload(raw: unknown, format: PayloadFormat): ISummaryPayload {
         );
       }
     }
+    sections = raw['sections'] as ISummarySection[];
   }
 
-  const result: ISummaryPayload = {
-    title: (obj['title'] as string).trim(),
-  };
-
-  if (obj['status'] !== undefined) {
-    (result as { status?: SummaryStatus }).status = obj['status'] as SummaryStatus;
+  const result: ISummaryPayload = { title };
+  if (status !== undefined) {
+    (result as { status: SummaryStatus }).status = status;
   }
-
-  if (obj['sections'] !== undefined) {
-    (result as { sections?: ISummarySection[] }).sections = obj['sections'] as ISummarySection[];
+  if (sections !== undefined) {
+    (result as { sections: ISummarySection[] }).sections = sections;
   }
 
   return result;
@@ -107,11 +113,12 @@ export class PayloadParser {
 
     // Detect JSON: must start with '{'
     if (cleaned.startsWith('{')) {
-      let parsed: unknown;
+      let parsed: Record<string, unknown>;
       try {
-        parsed = JSON.parse(cleaned);
+        // Input starts with '{', so JSON.parse always yields an object
+        parsed = JSON.parse(cleaned) as Record<string, unknown>;
       } catch (err) {
-        throw new PayloadParseError(`Invalid JSON: ${(err as Error).message}`, 'json');
+        throw new PayloadParseError(`Invalid JSON: ${(err as SyntaxError).message}`, 'json');
       }
       return { payload: validatePayload(parsed, 'json'), format: 'json' };
     }
@@ -119,9 +126,8 @@ export class PayloadParser {
     // Detect YAML: try to parse as an object with 'title'
     try {
       const parsed = yaml.load(cleaned);
-      if (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) {
-        const obj = parsed as Record<string, unknown>;
-        if (typeof obj['title'] === 'string' && obj['title'].trim() !== '') {
+      if (isRecord(parsed)) {
+        if (typeof parsed['title'] === 'string' && parsed['title'].trim() !== '') {
           return { payload: validatePayload(parsed, 'yaml'), format: 'yaml' };
         }
       }
