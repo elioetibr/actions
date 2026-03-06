@@ -111,10 +111,12 @@ export class DeploymentGateService implements IDeploymentGateService {
     });
 
     return comments
-      .filter(c => c.user?.login && c.body)
+      .filter((c): c is typeof c & { user: { login: string }; body: string } =>
+        Boolean(c.user?.login && c.body),
+      )
       .map(c => ({
-        user: c.user!.login,
-        body: c.body!,
+        user: c.user.login,
+        body: c.body,
       }));
   }
 
