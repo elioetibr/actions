@@ -11,6 +11,7 @@ import { createTerraformRunner } from './terraform/runner';
 import { createTerragruntRunner } from './terragrunt/runner';
 import { createDeploymentGateRunner } from './deployment-gate/runner';
 import { createSummarizeRunner } from './summarize/runner';
+import { createPullRequesterRunner } from './pullrequester/runner';
 
 /**
  * Registry of available agents
@@ -26,6 +27,7 @@ const runners: Map<string, RunnerFactory> = new Map([
   ['terragrunt', createTerragruntRunner],
   ['deployment-gate', createDeploymentGateRunner],
   ['summarize', createSummarizeRunner],
+  ['pullrequester', createPullRequesterRunner],
 ]);
 
 /**
