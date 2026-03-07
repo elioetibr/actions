@@ -1,0 +1,176 @@
+name: 'PullRequester'
+description: 'Create or update pull requests with issue tracker integration (GitHub, Linear, Jira).'
+author: 'Elio Severo Junior <elio@elio.eti.br>'
+branding:
+  icon: 'git-pull-request'
+  color: 'blue'
+
+inputs:
+  token:
+    description: 'GitHub token for API access'
+    required: false
+    default: ${{ github.token }}
+  branch:
+    description: 'The branch name for the pull request head'
+    required: false
+    default: 'pullrequester/patch'
+  base:
+    description: 'The base branch to merge into (defaults to current branch)'
+    required: false
+    default: ''
+  title:
+    description: 'Pull request title'
+    required: false
+    default: 'Automated changes'
+  body:
+    description: 'Pull request body content'
+    required: false
+    default: ''
+  body-path:
+    description: 'Path to a file containing the PR body'
+    required: false
+    default: ''
+  body-template:
+    description: 'Template string for the PR body (supports placeholders)'
+    required: false
+    default: ''
+  commit-message:
+    description: 'Commit message for the automated commit'
+    required: false
+    default: '[pullrequester] automated change'
+  author:
+    description: 'Git author in "Name <email>" format'
+    required: false
+    default: 'github-actions[bot] <github-actions[bot]@users.noreply.github.com>'
+  committer:
+    description: 'Git committer in "Name <email>" format'
+    required: false
+    default: 'github-actions[bot] <github-actions[bot]@users.noreply.github.com>'
+  signoff:
+    description: 'Whether to add Signed-off-by trailer to the commit'
+    required: false
+    default: 'false'
+  sign-commits:
+    description: 'Whether to GPG-sign the commits'
+    required: false
+    default: 'false'
+  labels:
+    description: 'Comma-separated list of labels to apply to the pull request'
+    required: false
+    default: ''
+  assignees:
+    description: 'Comma-separated list of GitHub usernames to assign'
+    required: false
+    default: ''
+  reviewers:
+    description: 'Comma-separated list of GitHub usernames to request review from'
+    required: false
+    default: ''
+  team-reviewers:
+    description: 'Comma-separated list of GitHub team slugs to request review from'
+    required: false
+    default: ''
+  milestone:
+    description: 'Milestone number to associate with the pull request'
+    required: false
+    default: ''
+  draft:
+    description: 'Draft mode: "true", "false", or "always-true"'
+    required: false
+    default: 'false'
+  add-paths:
+    description: 'Comma-separated list of file paths to add to the commit (glob patterns)'
+    required: false
+    default: ''
+  delete-branch:
+    description: 'Whether to delete the head branch after merge'
+    required: false
+    default: 'false'
+  maintainer-can-modify:
+    description: 'Whether maintainers can push to the head branch'
+    required: false
+    default: 'true'
+  skip-on-collaborator-commits:
+    description: 'Whether to skip when collaborator commits are detected on the PR branch'
+    required: false
+    default: 'true'
+  auto-body:
+    description: 'Whether to auto-generate PR body from commit log'
+    required: false
+    default: 'false'
+  conflict-label:
+    description: 'Label to apply when merge conflicts are detected'
+    required: false
+    default: ''
+  auto-label-from-issue:
+    description: 'Whether to mirror labels from the linked issue to the PR'
+    required: false
+    default: 'false'
+  comment-marker-id:
+    description: 'Hidden marker ID for upsert-based commenting on issues'
+    required: false
+    default: 'pullrequester'
+  project-management:
+    description: 'Which project management tracker to use: github, linear, or jira'
+    required: false
+    default: 'github'
+  issue-key-source:
+    description: 'Where to extract issue keys from: branch, commits, or both'
+    required: false
+    default: 'both'
+  issue-link-pr:
+    description: 'Whether to link the PR to the issue in the tracker'
+    required: false
+    default: 'false'
+  issue-add-comment:
+    description: 'Whether to add/update a comment on the issue'
+    required: false
+    default: 'false'
+  issue-transition-state:
+    description: 'Target state to transition the issue to (empty = no transition)'
+    required: false
+    default: ''
+  linear-api-key:
+    description: 'Linear API key for authentication'
+    required: false
+    default: ''
+  linear-team-key:
+    description: 'Linear team key (optional, auto-detected from issue key)'
+    required: false
+    default: ''
+  jira-base-url:
+    description: 'Jira instance base URL (e.g., "https://myorg.atlassian.net")'
+    required: false
+    default: ''
+  jira-user-email:
+    description: 'Jira user email for authentication'
+    required: false
+    default: ''
+  jira-api-token:
+    description: 'Jira API token for authentication'
+    required: false
+    default: ''
+
+outputs:
+  operation:
+    description: 'The operation performed: created, updated, skipped, skipped-collaborator, or closed'
+  pull-request-number:
+    description: 'The number of the pull request (empty if skipped)'
+  pull-request-url:
+    description: 'The full URL of the pull request (empty if skipped)'
+  pull-request-branch:
+    description: 'The branch name used for the pull request'
+  head-sha:
+    description: 'The HEAD commit SHA after push (empty if skipped)'
+  has-conflicts:
+    description: 'Whether merge conflicts were detected with the base branch'
+  issues-linked:
+    description: 'Comma-separated list of issue keys linked to the PR'
+  labels-from-issue:
+    description: 'Comma-separated list of labels mirrored from the issue tracker'
+  comment-updated:
+    description: 'Whether an existing comment was updated (true) or a new one created (false)'
+
+runs:
+  using: 'node24'
+  main: 'main.mjs'
