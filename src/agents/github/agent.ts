@@ -68,9 +68,9 @@ export class GitHubActionsAgent implements IAgent {
     let stderr = '';
 
     const execOptions: exec.ExecOptions = {
-      cwd: options.cwd,
-      env: options.env,
-      silent: options.silent,
+      ...(options.cwd ? { cwd: options.cwd } : {}),
+      ...(options.env ? { env: options.env } : {}),
+      ...(options.silent !== undefined ? { silent: options.silent } : {}),
       ignoreReturnCode: options.ignoreReturnCode ?? true,
       listeners: {
         stdout: (data: Buffer) => {
