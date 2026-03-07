@@ -1,6 +1,6 @@
 import { r as requireCore, e as exec$2, c as commonjsGlobal, a as coreExports, l as lib, u as undiciExports, g as getDefaultExportFromCjs, b as getAugmentedNamespace } from './agents.mjs';
 import { R as RunnerBase } from './tools.mjs';
-import require$$1 from 'fs';
+import require$$1__default from 'fs';
 import require$$0 from 'os';
 
 class CommandFormatter {
@@ -337,9 +337,15 @@ class SemanticVersionInfo {
     this.majorMinorPatch = majorMinorPatch;
     this.semVerSuffix = semVerSuffix;
   }
+  /**
+   * Resolves a version string or provider into an IEnhancedSemanticVersionProvider
+   */
+  static resolveVersion(other) {
+    return typeof other === "string" ? SemanticVersionBuilder.fromVersion(other).build().semVerInfo : other;
+  }
   // Fluent comparison methods
   isGreaterThan(other) {
-    const otherInfo = typeof other === "string" ? SemanticVersionBuilder.fromVersion(other).build().semVerInfo : other;
+    const otherInfo = SemanticVersionInfo.resolveVersion(other);
     const [thisMajor, thisMinor, thisPatch] = [+this.major, +this.minor, +this.patch];
     const [otherMajor, otherMinor, otherPatch] = [
       +otherInfo.major,
@@ -351,15 +357,15 @@ class SemanticVersionInfo {
     return thisPatch > otherPatch;
   }
   isLessThan(other) {
-    const otherInfo = typeof other === "string" ? SemanticVersionBuilder.fromVersion(other).build().semVerInfo : other;
+    const otherInfo = SemanticVersionInfo.resolveVersion(other);
     return otherInfo.isGreaterThan(this);
   }
   isEqualTo(other) {
-    const otherInfo = typeof other === "string" ? SemanticVersionBuilder.fromVersion(other).build().semVerInfo : other;
+    const otherInfo = SemanticVersionInfo.resolveVersion(other);
     return this.version === otherInfo.version;
   }
   isCompatibleWith(other) {
-    const otherInfo = typeof other === "string" ? SemanticVersionBuilder.fromVersion(other).build().semVerInfo : other;
+    const otherInfo = SemanticVersionInfo.resolveVersion(other);
     return this.major === otherInfo.major;
   }
   // Fluent manipulation methods (return new instances)
@@ -509,7 +515,7 @@ var context = {};
 
 Object.defineProperty(context, "__esModule", { value: true });
 context.Context = void 0;
-const fs_1 = require$$1;
+const fs_1 = require$$1__default;
 const os_1 = require$$0;
 let Context$1 = class Context {
     /**

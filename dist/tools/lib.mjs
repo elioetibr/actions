@@ -4,6 +4,7 @@ import { j as createTerraformRunner } from './libs/terraform.mjs';
 import { c as createTerragruntRunner } from './libs/terragrunt.mjs';
 import { c as createDeploymentGateRunner } from './libs/deployment-gate.mjs';
 import { c as createSummarizeRunner } from './libs/summarize.mjs';
+import { c as createPullRequesterRunner } from './libs/pullrequester.mjs';
 export { R as RunnerBase } from './libs/tools.mjs';
 
 const agents = /* @__PURE__ */ new Map([["github", createGitHubActionsAgent]]);
@@ -12,7 +13,8 @@ const runners = /* @__PURE__ */ new Map([
   ["terraform", createTerraformRunner],
   ["terragrunt", createTerragruntRunner],
   ["deployment-gate", createDeploymentGateRunner],
-  ["summarize", createSummarizeRunner]
+  ["summarize", createSummarizeRunner],
+  ["pullrequester", createPullRequesterRunner]
 ]);
 function getAgent(name) {
   const factory = agents.get(name);

@@ -831,9 +831,17 @@ class TerraformBuilder extends BaseIacBuilder {
   }
 }
 
+function validateTerraformCommand(input) {
+  if (!TERRAFORM_COMMANDS.includes(input)) {
+    throw new Error(
+      `Invalid terraform command: "${input}". Valid commands: ${TERRAFORM_COMMANDS.join(", ")}`
+    );
+  }
+  return input;
+}
 function getSettings(agent) {
   return {
-    command: agent.getInput("command", true),
+    command: validateTerraformCommand(agent.getInput("command", true)),
     workingDirectory: agent.getInput("working-directory") || ".",
     terraformVersion: agent.getInput("terraform-version"),
     terraformVersionFile: agent.getInput("terraform-version-file") || ".terraform-version",

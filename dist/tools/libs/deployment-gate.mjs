@@ -3843,7 +3843,9 @@ class DeploymentGateService {
       issue_number: issueNumber,
       per_page: 100
     });
-    return comments.filter((c) => c.user?.login && c.body).map((c) => ({
+    return comments.filter(
+      (c) => Boolean(c.user?.login && c.body)
+    ).map((c) => ({
       user: c.user.login,
       body: c.body
     }));
@@ -4112,5 +4114,5 @@ function createDeploymentGateRunner() {
   return new DeploymentGateRunner();
 }
 
-export { createDeploymentGateRunner as c };
+export { Octokit as O, createDeploymentGateRunner as c };
 //# sourceMappingURL=deployment-gate.mjs.map
