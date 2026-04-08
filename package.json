@@ -20,10 +20,10 @@
     "lint": "eslint --no-warn-ignored src/**/*.ts",
     "lint:fix": "eslint --no-warn-ignored --fix src/**/*.ts",
     "lint:tsc": "tsc --noEmit",
-    "report-coverage": "jest --coverage --color --coverageReporters=\"json-summary\" && jq -r '(.total.lines.pct | tostring) + \"% lines, \" + (.total.statements.pct | tostring) + \"% statements, \" + (.total.functions.pct | tostring) + \"% functions, \" + (.total.branches.pct | tostring) + \"% branches\"' coverage/coverage-summary.json",
-    "test": "jest",
-    "test:coverage": "jest --coverage --color",
-    "test:watch": "jest --watch",
+    "report-coverage": "bun test --coverage --coverage-reporter=text",
+    "test": "bun test",
+    "test:coverage": "bun test --coverage --coverage-reporter=lcov --coverage-reporter=text",
+    "test:watch": "bun test --watch",
     "typecheck": "tsc --noEmit",
     "prepare": "husky",
     "update-readme": "ts-node scripts/updateReadme.ts"
@@ -35,42 +35,42 @@
     "tags"
   ],
   "dependencies": {
-    "@actions/core": "^1.11.1",
-    "@actions/exec": "^1.1.1",
-    "@actions/github": "^6.0.1",
-    "@docker/actions-toolkit": "^0.61.0",
-    "@linear/sdk": "^76.0.0",
+    "@actions/core": "^3.0.0",
+    "@actions/exec": "^3.0.0",
+    "@actions/github": "^9.0.0",
+    "@docker/actions-toolkit": "^0.87.0",
+    "@linear/sdk": "^81.0.0",
     "@octokit/auth-app": "^8.2.0",
     "@octokit/core": "^7.0.6",
-    "@octokit/plugin-paginate-rest": "^13.2.1",
-    "@octokit/request": "^10.0.7",
+    "@octokit/plugin-paginate-rest": "^14.0.0",
+    "@octokit/request": "^10.0.8",
     "@octokit/request-error": "^7.1.0",
-    "@octokit/rest": "^21.1.1",
+    "@octokit/rest": "^22.0.1",
     "jira.js": "^5.3.1",
     "strip-ansi": "^7.2.0"
   },
   "devDependencies": {
-    "@types/jest": "^29.5.14",
+    "@types/jest": "^30.0.0",
     "@types/js-yaml": "^4.0.9",
-    "@types/node": "^20.19.33",
-    "@typescript-eslint/eslint-plugin": "^8.54.0",
-    "@typescript-eslint/parser": "^8.54.0",
-    "eslint": "^9.39.2",
+    "@types/node": "^25.5.2",
+    "@typescript-eslint/eslint-plugin": "^8.58.1",
+    "@typescript-eslint/parser": "^8.58.1",
+    "eslint": "^10.2.0",
     "eslint-config-prettier": "^10.1.8",
-    "eslint-plugin-jest": "^28.14.0",
+    "eslint-plugin-jest": "^29.15.1",
     "eslint-plugin-prettier": "^5.5.5",
     "husky": "^9.1.7",
-    "jest": "^29.7.0",
+    "jest": "^30.3.0",
     "js-yaml": "^4.1.1",
-    "lint-staged": "^16.2.7",
+    "lint-staged": "^16.4.0",
     "prettier": "^3.8.1",
-    "ts-jest": "^29.4.6",
+    "ts-jest": "^29.4.9",
     "ts-node": "^10.9.2",
-    "typescript": "^5.9.3",
-    "vite": "^5.4.21",
-    "vite-tsconfig-paths": "^4.3.2"
+    "typescript": "^6.0.2",
+    "vite": "^8.0.7",
+    "vite-tsconfig-paths": "^6.1.1"
   },
-  "packageManager": "pnpm@10.29.2",
+  "packageManager": "bun@1.3.11",
   "lint-staged": {
     "*.{ts,js}": [
       "eslint --fix",
@@ -80,10 +80,15 @@
       "prettier --write"
     ]
   },
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "esbuild",
-      "unrs-resolver"
-    ]
+  "trustedDependencies": [
+    "esbuild",
+    "unrs-resolver"
+  ],
+  "overrides": {
+    "@octokit/plugin-paginate-rest@>=1.0.0 <9.2.2": ">=9.2.2",
+    "@octokit/request-error@>=1.0.0 <5.1.1": ">=5.1.1",
+    "@octokit/request@>=1.0.0 <8.4.1": ">=8.4.1",
+    "esbuild@<=0.24.2": ">=0.25.0",
+    "undici@<6.23.0": ">=6.23.0"
   }
 }
