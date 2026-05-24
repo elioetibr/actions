@@ -51,7 +51,7 @@ verify: lint typecheck test build ## Run lint, typecheck, tests, and build
 .PHONY: version
 version: ## Show the calculated semantic version from GitVersion
 	$(call check_tool,$(GITVERSION),gitversion,Install: dotnet tool install -g GitVersion.Tool)
-	@gitversion /output json | jq '{Branch: .BranchName, FullSemVer: .FullSemVer, MajorMinorPatch: .MajorMinorPatch, Major: .Major, Minor: .Minor, Patch: .Patch}'
+	@gitversion /output json | jq '{Branch: .BranchName, FullSemVer: .FullSemVer, SemVer: .SemVer, MajorMinorPatch: .MajorMinorPatch, Major: .Major, Minor: .Minor, Patch: .Patch}'
 
 .PHONY: calculate-version
 calculate-version: ## Calculate and lock version into .release-version
