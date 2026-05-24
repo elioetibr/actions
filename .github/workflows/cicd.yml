@@ -275,6 +275,9 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
           slug: ${{ github.repository }}
           files: ./coverage/lcov.info
+          flags: unit
+          plugins: noop
+          disable_search: true
           fail_ci_if_error: false
 
       # Auto-commit dist/ and version bump on push to main
