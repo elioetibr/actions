@@ -8,6 +8,9 @@ rules:
   truthy:
     check-keys: false # workflow `on:` keys are falsey-looking but valid
   comments-indentation: disable
+  comments:
+    min-spaces-from-content: 1 # allow `key: value # comment` (yamllint default requires 2)
+    require-starting-space: true
   document-start: disable
   indentation:
     spaces: 2
