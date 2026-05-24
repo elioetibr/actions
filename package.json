@@ -74,8 +74,7 @@
     "prettier": "^3.8.3",
     "ts-node": "^10.9.2",
     "typescript": "^6.0.3",
-    "vite": "^8.0.14",
-    "vite-tsconfig-paths": "^6.1.1"
+    "vite": "^8.0.14"
   },
   "peerDependencies": {
     "typescript": "^6"

@@ -1,7 +1,6 @@
 import { defineConfig, type Plugin } from 'vite';
 import { resolve } from 'path';
 import { builtinModules } from 'module';
-import tsconfigPaths from 'vite-tsconfig-paths';
 
 // Target runtime is Node 24 (GitHub Actions). Filter out built-in modules
 // that only exist in newer Node versions than our target or are optional
@@ -44,7 +43,7 @@ function stubNodeSqlite(): Plugin {
  * built-in modules are externalized.
  */
 export default defineConfig({
-  plugins: [stubNodeSqlite(), tsconfigPaths()],
+  plugins: [stubNodeSqlite()],
   build: {
     target: 'esnext',
     outDir: 'dist/tools',
@@ -92,12 +91,6 @@ export default defineConfig({
     // Ensure CommonJS dependencies (@actions/core, etc.) are bundled correctly
     commonjsOptions: {
       transformMixedEsModules: true,
-    },
-  },
-  // Resolve TypeScript path aliases
-  resolve: {
-    alias: {
-      '@': resolve(__dirname, 'src'),
     },
   },
   // Treat as Node.js environment
