@@ -4,3 +4,4 @@ MD022: true # blanks around headings (explicit per user preference)
 MD032: true # blanks around lists (explicit per user preference)
 MD033: false # allow inline HTML (action-docs uses HTML comment markers, README badges may use <img>)
 MD041: false # first line need not be a top-level heading (action READMEs start with markers)
+MD060: false # table-column-style — cosmetic, both styles render identically

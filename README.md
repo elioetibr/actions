@@ -106,7 +106,7 @@ sequenceDiagram
 
 ### Repository Layout
 
-```
+```text
 elioetibr/actions/
 ├── docker/buildx/images/     # Consumer-facing action
 │   ├── action.yml            # GitHub Action definition (node24)

@@ -389,7 +389,7 @@ jobs:
           then
             # Create full version tag (v1.2.3)
             tag "$FULL_VERSION"
-            
+
             # Create/update major.minor tag (v1.2)
             tag "$MAJOR_MINOR_VERSION"
 
