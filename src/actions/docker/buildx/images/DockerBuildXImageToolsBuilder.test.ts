@@ -664,16 +664,22 @@ describe('DockerBuildXImageToolsBuilder', () => {
     describe('isNullOrUndefined', () => {
       it('should detect null and undefined values through validation', () => {
         // Tested through validation in addMetaData and setMetaData
-        
+
         // null key should throw (explicit null)
-        expect(() => builder.addMetaData(null as any, 'value')).toThrow('Metadata key cannot be null or undefined');
-        
+        expect(() => builder.addMetaData(null as any, 'value')).toThrow(
+          'Metadata key cannot be null or undefined',
+        );
+
         // undefined key should NOT throw (uses default parameter value '')
         expect(() => builder.addMetaData(undefined as any, 'value')).not.toThrow();
-        
+
         // null/undefined values should throw
-        expect(() => builder.addMetaData('key', null as any)).toThrow('Metadata value cannot be null or undefined');
-        expect(() => builder.addMetaData('key', undefined as any)).toThrow('Metadata value cannot be null or undefined');
+        expect(() => builder.addMetaData('key', null as any)).toThrow(
+          'Metadata value cannot be null or undefined',
+        );
+        expect(() => builder.addMetaData('key', undefined as any)).toThrow(
+          'Metadata value cannot be null or undefined',
+        );
       });
     });
   });

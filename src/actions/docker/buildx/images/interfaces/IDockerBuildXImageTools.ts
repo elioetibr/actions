@@ -2,8 +2,7 @@ import { IDockerBuildXImageToolsProvider } from '../providers';
 import { IStringListProvider } from '../../../../../libs';
 
 export interface IDockerBuildXImageTools
-  extends IDockerBuildXImageToolsProvider,
-    IStringListProvider {
+  extends IDockerBuildXImageToolsProvider, IStringListProvider {
   /**
    * Add a single key-value pair to metadata
    * @param key - The metadata key

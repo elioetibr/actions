@@ -8,6 +8,8 @@ import { IMetaDataManager } from '../interfaces';
 export class MetaDataManager implements IMetaDataManager {
   private readonly metaData: Map<string, string[]> = new Map();
 
+  constructor() {}
+
   /**
    * Add a single key-value pair to metadata
    * @param key - The metadata key (defaults to empty string)

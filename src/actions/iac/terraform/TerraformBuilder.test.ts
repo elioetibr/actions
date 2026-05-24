@@ -43,20 +43,26 @@ describe('TerraformBuilder', () => {
       const service = TerraformBuilder.forDestroy().build();
       expect(service.command).toBe('destroy');
     });
+
+    test('forOutput() creates output builder', () => {
+      const service = TerraformBuilder.forOutput().build();
+      expect(service.command).toBe('output');
+    });
+
+    test('forShow() creates show builder', () => {
+      const service = TerraformBuilder.forShow().build();
+      expect(service.command).toBe('show');
+    });
   });
 
   describe('fluent configuration', () => {
     test('withWorkingDirectory sets working directory', () => {
-      const service = TerraformBuilder.forPlan()
-        .withWorkingDirectory('./infrastructure')
-        .build();
+      const service = TerraformBuilder.forPlan().withWorkingDirectory('./infrastructure').build();
       expect(service.workingDirectory).toBe('./infrastructure');
     });
 
     test('withVariable adds a variable', () => {
-      const service = TerraformBuilder.forPlan()
-        .withVariable('environment', 'production')
-        .build();
+      const service = TerraformBuilder.forPlan().withVariable('environment', 'production').build();
       expect(service.variables.get('environment')).toBe('production');
     });
 
@@ -72,16 +78,12 @@ describe('TerraformBuilder', () => {
     });
 
     test('withVarFile adds a var file', () => {
-      const service = TerraformBuilder.forPlan()
-        .withVarFile('./production.tfvars')
-        .build();
+      const service = TerraformBuilder.forPlan().withVarFile('./production.tfvars').build();
       expect(service.varFiles).toContain('./production.tfvars');
     });
 
     test('withTarget adds a target', () => {
-      const service = TerraformBuilder.forPlan()
-        .withTarget('module.vpc')
-        .build();
+      const service = TerraformBuilder.forPlan().withTarget('module.vpc').build();
       expect(service.targets).toContain('module.vpc');
     });
 
@@ -99,16 +101,12 @@ describe('TerraformBuilder', () => {
     });
 
     test('withOutFile sets output file', () => {
-      const service = TerraformBuilder.forPlan()
-        .withOutFile('./plan.tfplan')
-        .build();
+      const service = TerraformBuilder.forPlan().withOutFile('./plan.tfplan').build();
       expect(service.outFile).toBe('./plan.tfplan');
     });
 
     test('withPlanFile sets plan file', () => {
-      const service = TerraformBuilder.forApply()
-        .withPlanFile('./plan.tfplan')
-        .build();
+      const service = TerraformBuilder.forApply().withPlanFile('./plan.tfplan').build();
       expect(service.planFile).toBe('./plan.tfplan');
     });
 
@@ -123,9 +121,7 @@ describe('TerraformBuilder', () => {
     });
 
     test('withLockTimeout sets lock timeout', () => {
-      const service = TerraformBuilder.forPlan()
-        .withLockTimeout('30s')
-        .build();
+      const service = TerraformBuilder.forPlan().withLockTimeout('30s').build();
       expect(service.lockTimeout).toBe('30s');
     });
 
@@ -145,9 +141,7 @@ describe('TerraformBuilder', () => {
     });
 
     test('withBackendConfig adds backend config', () => {
-      const service = TerraformBuilder.forInit()
-        .withBackendConfig('bucket', 'my-bucket')
-        .build();
+      const service = TerraformBuilder.forInit().withBackendConfig('bucket', 'my-bucket').build();
       expect(service.backendConfig.get('bucket')).toBe('my-bucket');
     });
   });
@@ -160,18 +154,14 @@ describe('TerraformBuilder', () => {
     });
 
     test('generates plan command with variables', () => {
-      const service = TerraformBuilder.forPlan()
-        .withVariable('environment', 'prod')
-        .build();
+      const service = TerraformBuilder.forPlan().withVariable('environment', 'prod').build();
       const command = service.buildCommand();
       expect(command).toContain('-var');
       expect(command).toContain('environment=prod');
     });
 
     test('generates plan command with output file', () => {
-      const service = TerraformBuilder.forPlan()
-        .withOutFile('./plan.tfplan')
-        .build();
+      const service = TerraformBuilder.forPlan().withOutFile('./plan.tfplan').build();
       const command = service.buildCommand();
       expect(command).toContain('-out');
       expect(command).toContain('./plan.tfplan');
@@ -219,15 +209,15 @@ describe('TerraformBuilder', () => {
 
   describe('validation', () => {
     test('throws error for invalid command', () => {
-      expect(() =>
-        TerraformBuilder.create().withCommand('invalid' as any)
-      ).toThrow('Invalid Terraform command');
+      expect(() => TerraformBuilder.create().withCommand('invalid' as any)).toThrow(
+        'Invalid Terraform command',
+      );
     });
 
     test('throws error for parallelism less than 1', () => {
-      expect(() =>
-        TerraformBuilder.forPlan().withParallelism(0)
-      ).toThrow('Parallelism level must be at least 1');
+      expect(() => TerraformBuilder.forPlan().withParallelism(0)).toThrow(
+        'Parallelism level must be at least 1',
+      );
     });
   });
 
@@ -271,17 +261,12 @@ describe('TerraformBuilderFactory', () => {
     });
 
     test('planWithOutput() creates plan with output', () => {
-      const service = TerraformBuilderFactory.planWithOutput(
-        './infra',
-        './plan.tfplan'
-      );
+      const service = TerraformBuilderFactory.planWithOutput('./infra', './plan.tfplan');
       expect(service.outFile).toBe('./plan.tfplan');
     });
 
     test('planWithTargets() creates plan with targets', () => {
-      const service = TerraformBuilderFactory.planWithTargets('./infra', [
-        'module.vpc',
-      ]);
+      const service = TerraformBuilderFactory.planWithTargets('./infra', ['module.vpc']);
       expect(service.targets).toContain('module.vpc');
     });
   });
@@ -298,18 +283,13 @@ describe('TerraformBuilderFactory', () => {
     });
 
     test('applyPlan() creates apply from plan file', () => {
-      const service = TerraformBuilderFactory.applyPlan(
-        './infra',
-        './plan.tfplan'
-      );
+      const service = TerraformBuilderFactory.applyPlan('./infra', './plan.tfplan');
       expect(service.planFile).toBe('./plan.tfplan');
       expect(service.autoApprove).toBe(true);
     });
 
     test('applyWithTargets() creates apply with targets', () => {
-      const service = TerraformBuilderFactory.applyWithTargets('./infra', [
-        'module.vpc',
-      ]);
+      const service = TerraformBuilderFactory.applyWithTargets('./infra', ['module.vpc']);
       expect(service.targets).toContain('module.vpc');
       expect(service.autoApprove).toBe(true);
     });
@@ -327,9 +307,7 @@ describe('TerraformBuilderFactory', () => {
     });
 
     test('destroyWithTargets() creates destroy with targets', () => {
-      const service = TerraformBuilderFactory.destroyWithTargets('./infra', [
-        'module.vpc',
-      ]);
+      const service = TerraformBuilderFactory.destroyWithTargets('./infra', ['module.vpc']);
       expect(service.targets).toContain('module.vpc');
       expect(service.autoApprove).toBe(true);
     });

@@ -36,6 +36,8 @@ export abstract class BaseIacBuilder<
   protected _parallelism: number | undefined;
   protected _lockTimeout: string | undefined;
 
+  constructor() {}
+
   // ============ Abstract Methods ============
 
   abstract build(): TService;

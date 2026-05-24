@@ -13,7 +13,7 @@ describe('StringFormatter', () => {
       'docker',
       ['buildx', 'imagetools'],
       false,
-      metaDataManager
+      metaDataManager,
     );
   });
 
@@ -26,7 +26,7 @@ describe('StringFormatter', () => {
   describe('toString', () => {
     it('should format basic object without metadata', () => {
       const result = stringFormatter.toString();
-      
+
       expect(result).toBe(`TestClass {
   command: "create"
   executor: "docker"
@@ -38,9 +38,9 @@ describe('StringFormatter', () => {
 
     it('should format object with single metadata entry', () => {
       metaDataManager.addMetaData('--tag', 'latest');
-      
+
       const result = stringFormatter.toString();
-      
+
       expect(result).toBe(`TestClass {
   command: "create"
   executor: "docker"
@@ -55,9 +55,9 @@ describe('StringFormatter', () => {
     it('should format object with multiple values for same key', () => {
       metaDataManager.addMetaData('--tag', 'latest');
       metaDataManager.addMetaData('--tag', 'v1.0.0');
-      
+
       const result = stringFormatter.toString();
-      
+
       expect(result).toBe(`TestClass {
   command: "create"
   executor: "docker"
@@ -72,9 +72,9 @@ describe('StringFormatter', () => {
     it('should format object with multiple metadata entries', () => {
       metaDataManager.addMetaData('--tag', 'latest');
       metaDataManager.addMetaData('--output', 'docker.io');
-      
+
       const result = stringFormatter.toString();
-      
+
       expect(result).toBe(`TestClass {
   command: "create"
   executor: "docker"
@@ -89,9 +89,9 @@ describe('StringFormatter', () => {
 
     it('should handle empty key as "(empty)"', () => {
       metaDataManager.addMetaData('', 'source-image');
-      
+
       const result = stringFormatter.toString();
-      
+
       expect(result).toBe(`TestClass {
   command: "create"
   executor: "docker"
@@ -110,11 +110,11 @@ describe('StringFormatter', () => {
         'docker',
         ['buildx', 'imagetools'],
         true,
-        metaDataManager
+        metaDataManager,
       );
-      
+
       const result = formatter.toString();
-      
+
       expect(result).toBe(`TestClass {
   command: "create"
   executor: "docker"
@@ -131,13 +131,13 @@ describe('StringFormatter', () => {
         'docker\\path',
         ['buildx\\tools', 'imagetools'],
         false,
-        metaDataManager
+        metaDataManager,
       );
-      
+
       metaDataManager.addMetaData('--tag', 'latest "version"');
-      
+
       const result = formatter.toString();
-      
+
       expect(result).toBe(`TestClass {
   command: "create \\"with quotes\\""
   executor: "docker\\\\path"
@@ -154,9 +154,9 @@ describe('StringFormatter', () => {
       metaDataManager.addMetaData('--tag', 'v1.0.0');
       metaDataManager.addMetaData('--annotation', 'key=value');
       metaDataManager.addMetaData('', 'source-image');
-      
+
       const result = stringFormatter.toString();
-      
+
       expect(result).toBe(`TestClass {
   command: "create"
   executor: "docker"
@@ -177,11 +177,11 @@ describe('StringFormatter', () => {
         'podman',
         ['manifest'],
         false,
-        metaDataManager
+        metaDataManager,
       );
-      
+
       const result = formatter.toString();
-      
+
       expect(result).toBe(`CustomDockerService {
   command: "inspect"
   executor: "podman"
@@ -198,11 +198,11 @@ describe('StringFormatter', () => {
         'docker',
         [],
         false,
-        metaDataManager
+        metaDataManager,
       );
-      
+
       const result = formatter.toString();
-      
+
       expect(result).toBe(`SimpleCommand {
   command: "version"
   executor: "docker"
@@ -219,11 +219,11 @@ describe('StringFormatter', () => {
         'docker',
         ['images'],
         false,
-        metaDataManager
+        metaDataManager,
       );
-      
+
       const result = formatter.toString();
-      
+
       expect(result).toBe(`SingleSubCommand {
   command: "ls"
   executor: "docker"
@@ -238,16 +238,16 @@ describe('StringFormatter', () => {
     it('should reflect changes in metadata manager', () => {
       // Initial state
       expect(stringFormatter.toString()).toContain('metaData: Map(0) {}');
-      
+
       // Add metadata
       metaDataManager.addMetaData('--tag', 'test');
       expect(stringFormatter.toString()).toContain('metaData: Map(1) {');
       expect(stringFormatter.toString()).toContain('"--tag" => "test"');
-      
+
       // Add more metadata
       metaDataManager.addMetaData('--output', 'test2');
       expect(stringFormatter.toString()).toContain('metaData: Map(2) {');
-      
+
       // Clear metadata
       metaDataManager.clearMetaData();
       expect(stringFormatter.toString()).toContain('metaData: Map(0) {}');
@@ -257,25 +257,25 @@ describe('StringFormatter', () => {
   describe('edge cases', () => {
     it('should handle values with newlines', () => {
       metaDataManager.addMetaData('--tag', 'value\\nwith\\nnewlines');
-      
+
       const result = stringFormatter.toString();
-      
+
       expect(result).toContain('"--tag" => "value\\\\nwith\\\\nnewlines"');
     });
 
     it('should handle values with tabs', () => {
       metaDataManager.addMetaData('--tag', 'value\\twith\\ttabs');
-      
+
       const result = stringFormatter.toString();
-      
+
       expect(result).toContain('"--tag" => "value\\\\twith\\\\ttabs"');
     });
 
     it('should handle empty string values', () => {
       metaDataManager.addMetaData('--dry-run', '');
-      
+
       const result = stringFormatter.toString();
-      
+
       expect(result).toContain('"--dry-run" => ""');
     });
 
@@ -296,13 +296,22 @@ describe('StringFormatter', () => {
         getFirstMetaData: jest.fn().mockReturnValue(undefined),
         removeMetaData: jest.fn().mockReturnThis(),
         clearMetaData: jest.fn().mockReturnThis(),
-        getAllMetaData: jest.fn().mockReturnValue(new Map([['--tag', [undefined as unknown as string]]])),
+        getAllMetaData: jest
+          .fn()
+          .mockReturnValue(new Map([['--tag', [undefined as unknown as string]]])),
         getSize: jest.fn().mockReturnValue(1),
-        entries: jest.fn().mockReturnValue(new Map([['--tag', [undefined as unknown as string]]]).entries()),
+        entries: jest
+          .fn()
+          .mockReturnValue(new Map([['--tag', [undefined as unknown as string]]]).entries()),
       };
 
       const formatter = new StringFormatter(
-        'TestClass', 'create', 'docker', ['buildx', 'imagetools'], false, mockManager
+        'TestClass',
+        'create',
+        'docker',
+        ['buildx', 'imagetools'],
+        false,
+        mockManager,
       );
 
       const result = formatter.toString();

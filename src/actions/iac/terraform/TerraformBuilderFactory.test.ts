@@ -71,39 +71,30 @@ describe('TerraformBuilderFactory', () => {
     });
 
     test('planWithOutput without variables', () => {
-      const service = TerraformBuilderFactory.planWithOutput(
-        './infra',
-        'plan.out'
-      );
+      const service = TerraformBuilderFactory.planWithOutput('./infra', 'plan.out');
       expect(service.command).toBe('plan');
       expect(service.outFile).toBe('plan.out');
       expect(service.variables.size).toBe(0);
     });
 
     test('planWithOutput with variables', () => {
-      const service = TerraformBuilderFactory.planWithOutput(
-        './infra',
-        'plan.out',
-        { env: 'prod' }
-      );
+      const service = TerraformBuilderFactory.planWithOutput('./infra', 'plan.out', {
+        env: 'prod',
+      });
       expect(service.outFile).toBe('plan.out');
       expect(service.variables.get('env')).toBe('prod');
     });
 
     test('planWithTargets without variables', () => {
-      const service = TerraformBuilderFactory.planWithTargets('./infra', [
-        'module.vpc',
-      ]);
+      const service = TerraformBuilderFactory.planWithTargets('./infra', ['module.vpc']);
       expect(service.targets).toContain('module.vpc');
       expect(service.variables.size).toBe(0);
     });
 
     test('planWithTargets with variables', () => {
-      const service = TerraformBuilderFactory.planWithTargets(
-        './infra',
-        ['module.vpc'],
-        { env: 'staging' }
-      );
+      const service = TerraformBuilderFactory.planWithTargets('./infra', ['module.vpc'], {
+        env: 'staging',
+      });
       expect(service.targets).toContain('module.vpc');
       expect(service.variables.get('env')).toBe('staging');
     });
@@ -138,30 +129,23 @@ describe('TerraformBuilderFactory', () => {
     });
 
     test('applyPlan', () => {
-      const service = TerraformBuilderFactory.applyPlan(
-        './infra',
-        'plan.out'
-      );
+      const service = TerraformBuilderFactory.applyPlan('./infra', 'plan.out');
       expect(service.command).toBe('apply');
       expect(service.planFile).toBe('plan.out');
       expect(service.autoApprove).toBe(true);
     });
 
     test('applyWithTargets without variables', () => {
-      const service = TerraformBuilderFactory.applyWithTargets('./infra', [
-        'module.vpc',
-      ]);
+      const service = TerraformBuilderFactory.applyWithTargets('./infra', ['module.vpc']);
       expect(service.targets).toContain('module.vpc');
       expect(service.autoApprove).toBe(true);
       expect(service.variables.size).toBe(0);
     });
 
     test('applyWithTargets with variables', () => {
-      const service = TerraformBuilderFactory.applyWithTargets(
-        './infra',
-        ['module.vpc'],
-        { env: 'prod' }
-      );
+      const service = TerraformBuilderFactory.applyWithTargets('./infra', ['module.vpc'], {
+        env: 'prod',
+      });
       expect(service.targets).toContain('module.vpc');
       expect(service.variables.get('env')).toBe('prod');
     });
@@ -182,36 +166,28 @@ describe('TerraformBuilderFactory', () => {
     });
 
     test('destroyWithAutoApprove without variables', () => {
-      const service =
-        TerraformBuilderFactory.destroyWithAutoApprove('./infra');
+      const service = TerraformBuilderFactory.destroyWithAutoApprove('./infra');
       expect(service.autoApprove).toBe(true);
       expect(service.variables.size).toBe(0);
     });
 
     test('destroyWithAutoApprove with variables', () => {
-      const service = TerraformBuilderFactory.destroyWithAutoApprove(
-        './infra',
-        { env: 'prod' }
-      );
+      const service = TerraformBuilderFactory.destroyWithAutoApprove('./infra', { env: 'prod' });
       expect(service.autoApprove).toBe(true);
       expect(service.variables.get('env')).toBe('prod');
     });
 
     test('destroyWithTargets without variables', () => {
-      const service = TerraformBuilderFactory.destroyWithTargets('./infra', [
-        'module.vpc',
-      ]);
+      const service = TerraformBuilderFactory.destroyWithTargets('./infra', ['module.vpc']);
       expect(service.targets).toContain('module.vpc');
       expect(service.autoApprove).toBe(true);
       expect(service.variables.size).toBe(0);
     });
 
     test('destroyWithTargets with variables', () => {
-      const service = TerraformBuilderFactory.destroyWithTargets(
-        './infra',
-        ['module.vpc'],
-        { env: 'prod' }
-      );
+      const service = TerraformBuilderFactory.destroyWithTargets('./infra', ['module.vpc'], {
+        env: 'prod',
+      });
       expect(service.targets).toContain('module.vpc');
       expect(service.variables.get('env')).toBe('prod');
     });

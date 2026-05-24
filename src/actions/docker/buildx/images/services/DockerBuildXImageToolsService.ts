@@ -20,14 +20,19 @@ export class DockerBuildXImageToolsService
     this.command = command;
     this._useStringList = useStringList;
     this.metaDataManager = new MetaDataManager();
-    this.commandBuilder = new CommandBuilder(this.executor, this.subCommands, this.command, this.metaDataManager);
+    this.commandBuilder = new CommandBuilder(
+      this.executor,
+      this.subCommands,
+      this.command,
+      this.metaDataManager,
+    );
     this.stringFormatter = new StringFormatter(
       this.constructor.name,
       this.command,
       this.executor,
       this.subCommands,
       this._useStringList,
-      this.metaDataManager
+      this.metaDataManager,
     );
   }
 
@@ -130,5 +135,4 @@ export class DockerBuildXImageToolsService
   toStringMultiLineCommand(): string {
     return new CommandFormatter(this, this).toStringMultiLineCommand();
   }
-
 }

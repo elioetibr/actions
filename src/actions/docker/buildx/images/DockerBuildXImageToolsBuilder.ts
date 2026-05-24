@@ -7,6 +7,8 @@ export class DockerBuildXImageToolsBuilder implements IDockerBuildXImageToolsBui
   private useStringList: boolean = false;
   private metadata: Map<string, string[]> = new Map();
 
+  constructor() {}
+
   /**
    * Create a new services instance
    * @param command - Optional initial command
@@ -155,5 +157,4 @@ export class DockerBuildXImageToolsBuilder implements IDockerBuildXImageToolsBui
 
     return instance;
   }
-
 }

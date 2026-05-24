@@ -1,4 +1,11 @@
-import type { SummaryTableRow } from '@actions/core/lib/summary';
+export interface SummaryTableCell {
+  data: string;
+  header?: boolean;
+  colspan?: string;
+  rowspan?: string;
+}
+
+export type SummaryTableRow = (SummaryTableCell | string)[];
 
 export type SummaryStatus = 'success' | 'failure' | 'warning' | 'info' | 'cancelled' | 'skipped';
 

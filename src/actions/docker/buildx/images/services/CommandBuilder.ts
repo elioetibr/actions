@@ -9,7 +9,7 @@ export class CommandBuilder implements ICommandBuilder {
     private readonly executor: string,
     private readonly subCommands: string[],
     private readonly command: string,
-    private readonly metaDataManager: IMetaDataManager
+    private readonly metaDataManager: IMetaDataManager,
   ) {}
 
   /**

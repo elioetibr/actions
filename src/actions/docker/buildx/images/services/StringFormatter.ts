@@ -11,7 +11,7 @@ export class StringFormatter implements IStringFormatter {
     private readonly executor: string,
     private readonly subCommands: string[],
     private readonly useStringList: boolean,
-    private readonly metaDataManager: IMetaDataManager
+    private readonly metaDataManager: IMetaDataManager,
   ) {}
 
   /**
@@ -20,7 +20,7 @@ export class StringFormatter implements IStringFormatter {
    */
   toString(): string {
     const metaDataStr = this.formatMetaData();
-    
+
     return `${this.className} {
   command: ${this.escapeString(this.command)}
   executor: ${this.escapeString(this.executor)}
@@ -42,9 +42,10 @@ export class StringFormatter implements IStringFormatter {
     const entries = Array.from(this.metaDataManager.entries())
       .map(([key, values]) => {
         const displayKey = key === '' ? '(empty)' : key;
-        const valueStr = values.length === 1 
-          ? this.escapeString(values[0] ?? '')
-          : `[${this.formatStringArray(values)}]`;
+        const valueStr =
+          values.length === 1
+            ? this.escapeString(values[0] ?? '')
+            : `[${this.formatStringArray(values)}]`;
         return `    ${this.escapeString(displayKey)} => ${valueStr}`;
       })
       .join('\n');
