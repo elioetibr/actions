@@ -4,7 +4,7 @@ set -euo pipefail
 
 shopt -s nullglob
 
-mapfile -t actions < <(find . -mindepth 2 -maxdepth 2 -name action.yml)
+mapfile -t actions < <(find "$(pwd)" -mindepth 2 -maxdepth 2 -name action.yml)
 if (( ${#actions[@]} == 0 )); then
   echo "No actions present; action-docs check is a no-op."
   exit 0

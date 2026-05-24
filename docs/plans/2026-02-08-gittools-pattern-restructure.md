@@ -1,7 +1,8 @@
 # GitTools Pattern Restructure
 
-Reorganize the monorepo to match the [GitTools/actions](https://github.com/GitTools/actions) pattern:
-consumer-facing directories at root with thin ESM shims, Vite-bundled dist/ committed to repo,
+Reorganize the monorepo to match the
+[GitTools/actions](https://github.com/GitTools/actions) pattern: consumer-facing
+directories at root with thin ESM shims, Vite-bundled dist/ committed to repo,
 GitVersion for semantic versioning, and floating version branches.
 
 ## Decisions
@@ -9,7 +10,8 @@ GitVersion for semantic versioning, and floating version branches.
 - **dist/ strategy**: Committed to repo, CI auto-commits changes
 - **Build system**: Vite with ESM code splitting (replaces ncc)
 - **Versioning**: GitVersion + floating major/minor branches (`v1`, `v1.2`)
-- **Actions used**: `actions/checkout@v4`, `pnpm/action-setup@v4`, `actions/setup-node@v4`, `gittools/actions/gitversion/setup@v4`
+- **Actions used**: `actions/checkout@v4`, `pnpm/action-setup@v4`,
+  `actions/setup-node@v4`, `gittools/actions/gitversion/setup@v4`
 
 ## Target Structure
 
@@ -56,12 +58,13 @@ elioetibr/actions/
 
 ## Shim Pattern
 
-Each consumer directory contains a 2-line `main.mjs` that delegates to compiled code:
+Each consumer directory contains a 2-line `main.mjs` that delegates to compiled
+code:
 
 ```javascript
 // docker/buildx/images/main.mjs
-import { run } from '../../../dist/tools/lib.mjs'
-await run('github', 'docker-buildx-images')
+import { run } from '../../../dist/tools/lib.mjs';
+await run('github', 'docker-buildx-images');
 ```
 
 Each `action.yml` points to its co-located shim:
@@ -74,23 +77,24 @@ runs:
 
 ## Central Dispatcher
 
-`src/tools/lib.ts` — the `run()` function dynamically imports agent + tool runner:
+`src/tools/lib.ts` — the `run()` function dynamically imports agent + tool
+runner:
 
 ```typescript
 export async function run(agent: string, tool: string): Promise<void> {
-  const buildAgent = await getAgent(agent)
-  const runner = await getToolRunner(tool)
-  await runner.run(buildAgent)
+  const buildAgent = await getAgent(agent);
+  const runner = await getToolRunner(tool);
+  await runner.run(buildAgent);
 }
 
 async function getAgent(agent: string): Promise<IBuildAgent> {
-  const module = await import(`./${agent}/agent.mjs`)
-  return new module.BuildAgent()
+  const module = await import(`./${agent}/agent.mjs`);
+  return new module.BuildAgent();
 }
 
 async function getToolRunner(tool: string): Promise<IRunner> {
-  const module = await import(`./libs/${tool}.mjs`)
-  return new module.Runner()
+  const module = await import(`./libs/${tool}.mjs`);
+  return new module.Runner();
 }
 ```
 
@@ -126,13 +130,14 @@ Replace 3 separate ncc builds with Vite code-split ESM output.
 
 ## Tool Runners
 
-Each action needs a runner in `src/tools/` that wraps the existing builder logic:
+Each action needs a runner in `src/tools/` that wraps the existing builder
+logic:
 
-| Runner | Source | Wraps |
-|--------|--------|-------|
+| Runner                                  | Source         | Wraps                                      |
+| --------------------------------------- | -------------- | ------------------------------------------ |
 | `src/tools/docker/imagetools/runner.ts` | Already exists | `src/actions/docker/buildx/images/main.ts` |
-| `src/tools/terraform/runner.ts` | **Create** | `src/actions/iac/terraform/main.ts` |
-| `src/tools/terragrunt/runner.ts` | **Create** | `src/actions/iac/terragrunt/main.ts` |
+| `src/tools/terraform/runner.ts`         | **Create**     | `src/actions/iac/terraform/main.ts`        |
+| `src/tools/terragrunt/runner.ts`        | **Create**     | `src/actions/iac/terragrunt/main.ts`       |
 
 Each runner implements `IRunner.run(agent: IBuildAgent)`.
 
@@ -143,6 +148,7 @@ Each runner implements `IRunner.run(agent: IBuildAgent)`.
 Trigger: push to main, PRs to main
 
 Steps:
+
 1. Checkout with `fetch-depth: 0` (full history for GitVersion)
 2. `gittools/actions/gitversion/setup@v4` — install GitVersion 6.x
 3. `gittools/actions/gitversion/execute@v4` — derive version
@@ -158,6 +164,7 @@ Steps:
 Trigger: GitHub Release published
 
 Steps:
+
 1. Checkout with full history
 2. GitVersion setup + execute
 3. Force-push floating branches:
@@ -182,8 +189,10 @@ This hides dist/ from GitHub PR diffs while keeping it committed.
 
 ### Step 1: Move consumer-facing files to root paths
 
-- Move `src/actions/docker/buildx/images/action.yml` → `docker/buildx/images/action.yml`
-- Move `src/actions/docker/buildx/images/README.md` → `docker/buildx/images/README.md`
+- Move `src/actions/docker/buildx/images/action.yml` →
+  `docker/buildx/images/action.yml`
+- Move `src/actions/docker/buildx/images/README.md` →
+  `docker/buildx/images/README.md`
 - Move `src/actions/iac/terraform/action.yml` → `iac/terraform/action.yml`
 - Move `src/actions/iac/terraform/README.md` → `iac/terraform/README.md`
 - Move `src/actions/iac/terragrunt/action.yml` → `iac/terragrunt/action.yml`
@@ -238,5 +247,6 @@ This hides dist/ from GitHub PR diffs while keeping it committed.
 - Run `pnpm run build` — verify dist/ output
 - Run `pnpm test` — verify all tests pass
 - Run `pnpm run lint` — verify lint passes
-- Verify shims resolve: `node docker/buildx/images/main.mjs` (expect controlled failure outside GitHub Actions)
+- Verify shims resolve: `node docker/buildx/images/main.mjs` (expect controlled
+  failure outside GitHub Actions)
 - Verify action.yml → main.mjs → dist/tools/lib.mjs chain
