@@ -33,8 +33,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
         with:
-          # Use PR head SHA on pull_request events to avoid synthetic merge commit
-          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          # Stay on a branch ref (not detached HEAD on github.sha) so the
+          # subsequent Tagging step's `git push --follow-tags` has a real
+          # upstream to push to.
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.ref }}
           fetch-depth: 0
           fetch-tags: true
 
@@ -52,16 +54,20 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
         with:
-          # Use PR head SHA on pull_request events to avoid synthetic merge commit
-          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          # Stay on a branch ref (not detached HEAD on github.sha) so the
+          # subsequent Tagging step's `git push --follow-tags` has a real
+          # upstream to push to.
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.ref }}
           fetch-depth: 0
           fetch-tags: true
 
       - uses: actions/setup-python@v6
         with:
-          python-version: '3.x'
+          python-version-file: '.python-version'
+
       - name: Install yamllint
         run: pip install --upgrade yamllint
+
       - name: Run yamllint
         run: yamllint .
 
@@ -72,8 +78,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
         with:
-          # Use PR head SHA on pull_request events to avoid synthetic merge commit
-          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          # Stay on a branch ref (not detached HEAD on github.sha) so the
+          # subsequent Tagging step's `git push --follow-tags` has a real
+          # upstream to push to.
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.ref }}
           fetch-depth: 0
           fetch-tags: true
 
@@ -97,20 +105,23 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
         with:
-          # Use PR head SHA on pull_request events to avoid synthetic merge commit
-          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          # Stay on a branch ref (not detached HEAD on github.sha) so the
+          # subsequent Tagging step's `git push --follow-tags` has a real
+          # upstream to push to.
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.ref }}
           fetch-depth: 0
           fetch-tags: true
 
       - uses: actions/setup-node@v6
         with:
           node-version-file: '.nvmrc'
-      - name: Check action READMEs are in sync with action.yml
+
+      - name: Check action README's are in sync with action.yml
         shell: bash
         run: |
           set -euo pipefail
           shopt -s nullglob
-          mapfile -t actions < <(find actions -mindepth 2 -maxdepth 2 -name action.yml)
+          mapfile -t actions < <(find "$(pwd)" -mindepth 2 -maxdepth 2 -name action.yml)
           if (( ${#actions[@]} == 0 )); then
             echo "No actions present; action-docs check is a no-op."
             exit 0
@@ -147,13 +158,18 @@ jobs:
     name: Gitleaks
     runs-on: ${{ vars.RUNS_ON_ARM64 || vars.RUNS_ON || 'ubuntu-latest' }}
     steps:
-      - uses: actions/checkout@v6
+      - name: Checkout
+        uses: actions/checkout@v6
         with:
-          # gitleaks scans full git history for leaked secrets; the
-          # default shallow checkout would miss anything but HEAD.
+          # Stay on a branch ref (not detached HEAD on github.sha) so the
+          # subsequent Tagging step's `git push --follow-tags` has a real
+          # upstream to push to.
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.ref }}
           fetch-depth: 0
+          fetch-tags: true
+
       - name: Run gitleaks
-        uses: gitleaks/gitleaks-action@v2
+        uses: elioetibr/gitleaks-action@v2.3.10-23
         env:
           GITHUB_TOKEN: ${{ github.token }}
           # Org-level license secret (visibility: all). Required by
@@ -182,6 +198,7 @@ jobs:
           echo "All required checks passed."
 
   build:
+    name: Build
     runs-on: ${{ vars.RUNS_ON_ARM64 || vars.RUNS_ON || 'ubuntu-latest' }}
     needs: [actionlint, yamllint, markdownlint, action-docs-check, gitleaks, all-green]
     # Skip when the previous commit was the auto-release CHANGELOG bump.
@@ -252,7 +269,11 @@ jobs:
 
       - name: Upload coverage
         uses: codecov/codecov-action@v6
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_ORG_TOKEN }}
         with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: ${{ github.repository }}
           files: ./coverage/lcov.info
           fail_ci_if_error: false
 
@@ -271,7 +292,7 @@ jobs:
 
   release:
     name: Release
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.RUNS_ON_ARM64 || vars.RUNS_ON || 'ubuntu-latest' }}
     needs: [build]
     if: success() && github.event_name == 'push' && github.ref_name == github.event.repository.default_branch
     steps:

@@ -6,7 +6,7 @@ on:
 jobs:
   terraform-e2e:
     name: Terraform Lifecycle (external setup)
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.RUNS_ON_ARM64 || vars.RUNS_ON || 'ubuntu-latest' }}
     defaults:
       run:
         working-directory: e2e/terraform
@@ -68,7 +68,7 @@ jobs:
 
   terraform-version-file:
     name: Terraform Lifecycle (version file)
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.RUNS_ON_ARM64 || vars.RUNS_ON || 'ubuntu-latest' }}
     defaults:
       run:
         working-directory: e2e/terraform

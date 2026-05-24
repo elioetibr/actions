@@ -6,7 +6,7 @@ on:
 jobs:
   terragrunt-single:
     name: Terragrunt Single Module (external setup)
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.RUNS_ON_ARM64 || vars.RUNS_ON || 'ubuntu-latest' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -74,7 +74,7 @@ jobs:
 
   terragrunt-run-all:
     name: Terragrunt Run-All (external setup)
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.RUNS_ON_ARM64 || vars.RUNS_ON || 'ubuntu-latest' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -147,7 +147,7 @@ jobs:
 
   terragrunt-version-file:
     name: Terragrunt Single Module (version files)
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.RUNS_ON_ARM64 || vars.RUNS_ON || 'ubuntu-latest' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v6
