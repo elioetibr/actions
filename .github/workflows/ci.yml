@@ -188,7 +188,7 @@ jobs:
           GH_TOKEN: ${{ steps.app-token.outputs.token || github.token }}
           SEMVER: v${{ steps.gitversion.outputs.SemVer }}
           FULL_VERSION: v${{ steps.gitversion.outputs.MajorMinorPatch }}
-          MINOR_VERSION: v${{ steps.gitversion.outputs.Major }}.${{ steps.gitversion.outputs.Minor }}
+          MAJOR_MINOR_VERSION: v${{ steps.gitversion.outputs.Major }}.${{ steps.gitversion.outputs.Minor }}
           MAJOR_VERSION: v${{ steps.gitversion.outputs.Major }}
         run: |
           function tag() {
@@ -221,7 +221,7 @@ jobs:
             tag "$FULL_VERSION"
             
             # Create/update major.minor tag (v1.2)
-            tag "$MINOR_VERSION"
+            tag "$MAJOR_MINOR_VERSION"
 
             # Create/update major tag (v1)
             tag "$MAJOR_VERSION"
