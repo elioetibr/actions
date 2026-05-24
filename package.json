@@ -80,7 +80,7 @@
   },
   "lint-staged": {
     "*.{ts,js}": [
-      "eslint --fix",
+      "eslint --fix --no-warn-ignored",
       "prettier --write"
     ],
     "*.{json,yml,yaml,md}": [

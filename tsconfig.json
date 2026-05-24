@@ -34,7 +34,8 @@
     "esModuleInterop": true,
     "allowImportingTsExtensions": false,
     /* Completeness */
-    "skipDefaultLibCheck": true
+    "skipDefaultLibCheck": true,
+    "types": ["bun", "node"]
   },
   "exclude": [
     "dist",
@@ -43,10 +44,9 @@
     "src/agents",
     "src/tools",
     "**/__tests__/**/*",
+    "**/__mocks__/**/*",
     "**/*.test.ts",
     "**/*.spec.ts"
   ],
-  "include": [
-    "src/**/*"
-  ]
+  "include": ["src/**/*"]
 }

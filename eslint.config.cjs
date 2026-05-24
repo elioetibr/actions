@@ -9,7 +9,15 @@ const globals = require('globals');
 module.exports = [
   js.configs.recommended,
   {
-    ignores: ['dist/**', 'coverage/**', 'node_modules/**', 'src/agents/**', 'src/tools/**'],
+    ignores: [
+      'dist/**',
+      'coverage/**',
+      'node_modules/**',
+      '__mocks__/**',
+      'scripts/**',
+      'src/agents/**',
+      'src/tools/**',
+    ],
   },
   {
     files: ['**/*.{js,mjs,cjs,ts}'],
