@@ -1,0 +1,21 @@
+---
+extends: default
+
+rules:
+  line-length:
+    max: 200
+    level: warning
+  truthy:
+    check-keys: false # workflow `on:` keys are falsey-looking but valid
+  comments-indentation: disable
+  document-start: disable
+  indentation:
+    spaces: 2
+    indent-sequences: true
+    check-multi-line-strings: false
+  braces:
+    min-spaces-inside-empty: 0 # GitVersion.yml uses `{ }` for empty maps; tolerate both
+    max-spaces-inside-empty: 1
+  brackets:
+    min-spaces-inside-empty: 0 # GitVersion.yml uses `[ ]` for empty lists; tolerate both
+    max-spaces-inside-empty: 1
