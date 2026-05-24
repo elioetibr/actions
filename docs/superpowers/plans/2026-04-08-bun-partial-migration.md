@@ -188,7 +188,7 @@ Replace with:
 - [ ] **Step 3: Check for any remaining pnpm references in the file**
 
 ```bash
-grep -n "pnpm\|corepack\|setup-node\|node-version" .github/workflows/ci.yml
+grep -n "pnpm\|corepack\|setup-node\|node-version" .github/workflows/cicd.yml
 ```
 
 Expected: no output (zero matches)
@@ -269,7 +269,7 @@ rm pnpm-lock.yaml
 - [ ] **Step 6: Commit**
 
 ```bash
-git add package.json bun.lock .github/workflows/ci.yml .husky/pre-commit
+git add package.json bun.lock .github/workflows/cicd.yml .husky/pre-commit
 git rm pnpm-lock.yaml
 git commit -S -m "chore(toolchain): replace pnpm with bun"
 ```
