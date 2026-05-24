@@ -44,8 +44,8 @@ export interface IImageInfo {
 function parseMultiValue(value: string): string[] {
   return value
     .split(/[,\n]/)
-    .map((v) => v.trim())
-    .filter((v) => v.length > 0);
+    .map(v => v.trim())
+    .filter(v => v.length > 0);
 }
 
 /**
@@ -94,11 +94,7 @@ export function getSettings(agent: IAgent): IImageToolsSettings {
 /**
  * Build full image URI
  */
-export function buildImageUri(
-  ecrRegistry: string,
-  ecrRepository: string,
-  tag?: string,
-): string {
+export function buildImageUri(ecrRegistry: string, ecrRepository: string, tag?: string): string {
   const baseUri = `${ecrRegistry}/${ecrRepository}`;
   return tag ? `${baseUri}:${tag}` : baseUri;
 }
@@ -111,5 +107,5 @@ export function buildArchTags(
   ecrRepository: string,
   tags: string[],
 ): string[] {
-  return tags.map((tag) => buildImageUri(ecrRegistry, ecrRepository, tag));
+  return tags.map(tag => buildImageUri(ecrRegistry, ecrRepository, tag));
 }

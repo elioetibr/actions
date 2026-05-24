@@ -1,31 +1,37 @@
+import { mock, jest, describe, test, beforeAll, beforeEach, expect } from 'bun:test';
 import type { IAgent } from '../../agents/interfaces';
 import type { VersionSpec } from '../../libs/version-manager';
-import * as versionManager from '../../libs/version-manager';
 
-// Mock the version-manager module before importing the runner
-jest.mock('../../libs/version-manager', () => {
-  const mockFileReader = { read: jest.fn() };
-  const mockResolver = { resolve: jest.fn() };
-  const mockInstaller = { install: jest.fn(), isInstalled: jest.fn() };
+// Define mock instances at module scope — available before mock.module() runs
+const mockFileReader = { read: jest.fn() };
+const mockResolver = { resolve: jest.fn() };
+const mockInstaller = { install: jest.fn(), isInstalled: jest.fn() };
 
-  return {
-    VersionFileReader: jest.fn(() => mockFileReader),
-    TerraformVersionResolver: jest.fn(() => mockResolver),
-    TerraformVersionInstaller: jest.fn(() => mockInstaller),
-    __mockResolver: mockResolver,
-    __mockInstaller: mockInstaller,
-  };
+// mock.module() is NOT hoisted, so mock instances above are already assigned.
+// Include ALL version-manager exports so the module object has the full shape —
+// this prevents Bun from failing when another test file in the same worker later
+// imports additional named exports (TerragruntVersionResolver etc.) from this path.
+mock.module('../../libs/version-manager', () => ({
+  VersionFileReader: jest.fn(() => mockFileReader),
+  TerraformVersionResolver: jest.fn(() => mockResolver),
+  TerraformVersionInstaller: jest.fn(() => mockInstaller),
+  TerragruntVersionResolver: jest.fn(),
+  TerragruntVersionInstaller: jest.fn(),
+  detectTerragruntVersion: jest.fn(),
+  isV1OrLater: jest.fn(),
+}));
+
+// Load the runner via dynamic import AFTER mock is registered
+// (runner.ts module-level singletons are created here, with our mocks in place)
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let TerraformRunner: any;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let createTerraformRunner: any;
+beforeAll(async () => {
+  const mod = await import('./runner');
+  TerraformRunner = mod.TerraformRunner;
+  createTerraformRunner = mod.createTerraformRunner;
 });
-
-import { TerraformRunner } from './runner';
-
-interface MockInternals {
-  __mockResolver: { resolve: jest.Mock };
-  __mockInstaller: { install: jest.Mock; isInstalled: jest.Mock };
-}
-
-const { __mockResolver: mockResolver, __mockInstaller: mockInstaller } =
-  versionManager as unknown as MockInternals;
 
 function createMockAgent(overrides: Record<string, string> = {}): jest.Mocked<IAgent> {
   const inputs: Record<string, string> = {
@@ -72,7 +78,8 @@ function createMockAgent(overrides: Record<string, string> = {}): jest.Mocked<IA
 }
 
 describe('TerraformRunner', () => {
-  let runner: TerraformRunner;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let runner: any;
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -88,20 +95,13 @@ describe('TerraformRunner', () => {
 
       await runner.run(agent, 'execute');
 
-      // Version resolution happened with correct args
       expect(mockResolver.resolve).toHaveBeenCalledWith(
         '1.9.8',
         '.terraform-version',
         '/workspace',
       );
-
-      // Install was called
       expect(mockInstaller.install).toHaveBeenCalledWith('1.9.8', agent);
-
-      // PATH was updated
       expect(agent.addPath).toHaveBeenCalledWith('/cache/terraform/1.9.8');
-
-      // Start/end group was called for version setup
       expect(agent.startGroup).toHaveBeenCalledWith('Terraform version setup');
       expect(agent.endGroup).toHaveBeenCalled();
     });
@@ -112,16 +112,9 @@ describe('TerraformRunner', () => {
 
       await runner.run(agent, 'execute');
 
-      // Resolver was called
       expect(mockResolver.resolve).toHaveBeenCalled();
-
-      // Installer was NOT called
       expect(mockInstaller.install).not.toHaveBeenCalled();
-
-      // PATH was NOT modified
       expect(agent.addPath).not.toHaveBeenCalled();
-
-      // Skip was logged
       expect(agent.info).toHaveBeenCalledWith(
         'Terraform version: skip (using existing PATH binary)',
       );
@@ -184,10 +177,8 @@ describe('TerraformRunner', () => {
     test('version setup runs before command build', async () => {
       const agent = createMockAgent();
       const spec: VersionSpec = { input: '1.9.8', resolved: '1.9.8', source: 'input' };
-      mockResolver.resolve.mockResolvedValue(spec);
-      mockInstaller.install.mockResolvedValue('/cache/terraform/1.9.8');
-
       const callOrder: string[] = [];
+
       mockResolver.resolve.mockImplementation(async () => {
         callOrder.push('resolve');
         return spec;
@@ -197,13 +188,9 @@ describe('TerraformRunner', () => {
         return '/cache/terraform/1.9.8';
       });
 
-      // Use dry-run to avoid needing to mock terraform exec
       await runner.run(agent, 'execute');
 
-      // Version setup comes first, command info comes after
       expect(callOrder).toEqual(['resolve', 'install']);
-
-      // The command was still built and logged (dry-run mode)
       expect(agent.info).toHaveBeenCalledWith(expect.stringContaining('Command:'));
     });
   });
@@ -217,6 +204,10 @@ describe('TerraformRunner', () => {
       const agent = createMockAgent();
       const result = await runner.run(agent, 'nonexistent');
       expect(result.success).toBe(false);
+    });
+
+    test('createTerraformRunner returns a TerraformRunner instance', () => {
+      expect(createTerraformRunner()).toBeInstanceOf(TerraformRunner);
     });
   });
 });

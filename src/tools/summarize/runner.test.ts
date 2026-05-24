@@ -9,43 +9,43 @@ import { SummarizeRunner, createSummarizeRunner } from './runner';
 // Mocks
 // ---------------------------------------------------------------------------
 
-jest.mock('../../actions/summarize/SummaryBuilder', () => {
-  const mockService: Partial<ISummaryService> = {
-    payload: { title: 'Test' },
-    compact: true,
-    compactThreshold: 900_000,
-    overwrite: true,
-    write: jest.fn<Promise<ISummaryWriteResult>, []>().mockResolvedValue({
-      characterCount: 42,
-      wasCompacted: false,
-    }),
-  };
+// Mock state hoisted to module scope so tests can access it directly.
+// In Bun, mock.module() factories evaluate at call time and arbitrary extra
+// exports (e.g. __mockService) are not retrievable via require().
+const mockService: Partial<ISummaryService> = {
+  payload: { title: 'Test' },
+  compact: true,
+  compactThreshold: 900_000,
+  overwrite: true,
+  write: jest.fn<Promise<ISummaryWriteResult>, []>().mockResolvedValue({
+    characterCount: 42,
+    wasCompacted: false,
+  }),
+};
 
-  return {
-    SummaryBuilder: {
-      create: jest.fn().mockReturnValue({
-        withPayload: jest.fn().mockReturnThis(),
-        withCompact: jest.fn().mockReturnThis(),
-        withCompactThreshold: jest.fn().mockReturnThis(),
-        withOverwrite: jest.fn().mockReturnThis(),
-        withAgent: jest.fn().mockReturnThis(),
-        build: jest.fn().mockReturnValue(mockService),
-      }),
-    },
-    __mockService: mockService,
-  };
-});
+const mockBuilderInstance = {
+  withPayload: jest.fn().mockReturnThis(),
+  withCompact: jest.fn().mockReturnThis(),
+  withCompactThreshold: jest.fn().mockReturnThis(),
+  withOverwrite: jest.fn().mockReturnThis(),
+  withAgent: jest.fn().mockReturnThis(),
+  build: jest.fn().mockReturnValue(mockService),
+};
+
+const mockSummaryBuilder = {
+  create: jest.fn().mockReturnValue(mockBuilderInstance),
+};
+
+jest.mock('../../actions/summarize/SummaryBuilder', () => ({
+  SummaryBuilder: mockSummaryBuilder,
+}));
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
 function getMockService(): jest.Mocked<ISummaryService> {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const mod = require('../../actions/summarize/SummaryBuilder') as {
-    __mockService: jest.Mocked<ISummaryService>;
-  };
-  return mod.__mockService;
+  return mockService as jest.Mocked<ISummaryService>;
 }
 
 function createMockAgent(
@@ -223,11 +223,7 @@ describe('SummarizeRunner', () => {
 
       await runner.run(agent, 'write');
 
-      const { SummaryBuilder } = jest.requireMock('../../actions/summarize/SummaryBuilder') as {
-        SummaryBuilder: { create: jest.Mock };
-      };
-      const builderInstance = SummaryBuilder.create();
-      expect(builderInstance.withCompactThreshold).toHaveBeenCalledWith(500_000);
+      expect(mockBuilderInstance.withCompactThreshold).toHaveBeenCalledWith(500_000);
     });
 
     it('returns failure when service.write() rejects', async () => {

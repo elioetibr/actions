@@ -16,6 +16,10 @@ export class SummarizeRunner extends RunnerBase {
     ['write', this.runWrite.bind(this)],
   ]);
 
+  constructor() {
+    super();
+  }
+
   private async runWrite(agent: IAgent): Promise<IRunnerResult> {
     try {
       const settings = getSettings(agent);

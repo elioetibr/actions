@@ -16,62 +16,62 @@ jest.mock('@octokit/rest', () => ({
   })),
 }));
 
-jest.mock('../../actions/deployment-gate/DeploymentGateBuilder', () => {
-  const mockService: Partial<IDeploymentGateService> = {
-    token: 'ghp_test',
-    owner: 'test-owner',
-    repo: 'test-repo',
-    approvers: ['alice', 'bob'],
-    minimumApprovals: 0,
-    issueTitle: 'Manual approval required',
-    issueBody: '',
-    pollingIntervalSeconds: 1,
-    failOnDenial: true,
-    excludeWorkflowInitiator: false,
-    additionalApprovedWords: [],
-    additionalDeniedWords: [],
-    resolveApprovers: jest.fn().mockResolvedValue(['alice', 'bob']),
-    createApprovalIssue: jest.fn().mockResolvedValue({
-      number: 42,
-      url: 'https://github.com/test-owner/test-repo/issues/42',
-    }),
-    getIssueComments: jest.fn().mockResolvedValue([]),
-    evaluateApproval: jest.fn().mockReturnValue({
-      status: ApprovalStatus.Pending,
-      approvedBy: [],
-    }),
-    closeIssue: jest.fn().mockResolvedValue(undefined),
-  };
+// Mock service is hoisted to module scope so tests can mutate it directly
+// (the `require()`-based re-export trick Jest supports doesn't work for Bun's
+// mock.module() factories, which evaluate at call time and do not surface
+// arbitrary extra exports through require()).
+const mockService: Partial<IDeploymentGateService> = {
+  token: 'ghp_test',
+  owner: 'test-owner',
+  repo: 'test-repo',
+  approvers: ['alice', 'bob'],
+  minimumApprovals: 0,
+  issueTitle: 'Manual approval required',
+  issueBody: '',
+  pollingIntervalSeconds: 1,
+  failOnDenial: true,
+  excludeWorkflowInitiator: false,
+  additionalApprovedWords: [],
+  additionalDeniedWords: [],
+  resolveApprovers: jest.fn().mockResolvedValue(['alice', 'bob']),
+  createApprovalIssue: jest.fn().mockResolvedValue({
+    number: 42,
+    url: 'https://github.com/test-owner/test-repo/issues/42',
+  }),
+  getIssueComments: jest.fn().mockResolvedValue([]),
+  evaluateApproval: jest.fn().mockReturnValue({
+    status: ApprovalStatus.Pending,
+    approvedBy: [],
+  }),
+  closeIssue: jest.fn().mockResolvedValue(undefined),
+};
 
-  return {
-    DeploymentGateBuilder: {
-      create: jest.fn().mockReturnValue({
-        withToken: jest.fn().mockReturnThis(),
-        withOwner: jest.fn().mockReturnThis(),
-        withRepo: jest.fn().mockReturnThis(),
-        withApprovers: jest.fn().mockReturnThis(),
-        withMinimumApprovals: jest.fn().mockReturnThis(),
-        withIssueTitle: jest.fn().mockReturnThis(),
-        withIssueBody: jest.fn().mockReturnThis(),
-        withPollingIntervalSeconds: jest.fn().mockReturnThis(),
-        withFailOnDenial: jest.fn().mockReturnThis(),
-        withExcludeWorkflowInitiator: jest.fn().mockReturnThis(),
-        withAdditionalApprovedWords: jest.fn().mockReturnThis(),
-        withAdditionalDeniedWords: jest.fn().mockReturnThis(),
-        build: jest.fn().mockReturnValue(mockService),
-      }),
-    },
-    __mockService: mockService,
-  };
-});
+const mockBuilderInstance = {
+  withToken: jest.fn().mockReturnThis(),
+  withOwner: jest.fn().mockReturnThis(),
+  withRepo: jest.fn().mockReturnThis(),
+  withApprovers: jest.fn().mockReturnThis(),
+  withMinimumApprovals: jest.fn().mockReturnThis(),
+  withIssueTitle: jest.fn().mockReturnThis(),
+  withIssueBody: jest.fn().mockReturnThis(),
+  withPollingIntervalSeconds: jest.fn().mockReturnThis(),
+  withFailOnDenial: jest.fn().mockReturnThis(),
+  withExcludeWorkflowInitiator: jest.fn().mockReturnThis(),
+  withAdditionalApprovedWords: jest.fn().mockReturnThis(),
+  withAdditionalDeniedWords: jest.fn().mockReturnThis(),
+  build: jest.fn().mockReturnValue(mockService),
+};
 
-// Access mock service for test manipulation
+const mockDeploymentGateBuilder = {
+  create: jest.fn().mockReturnValue(mockBuilderInstance),
+};
+
+jest.mock('../../actions/deployment-gate/DeploymentGateBuilder', () => ({
+  DeploymentGateBuilder: mockDeploymentGateBuilder,
+}));
+
 function getMockService(): jest.Mocked<IDeploymentGateService> {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const mod = require('../../actions/deployment-gate/DeploymentGateBuilder') as {
-    __mockService: jest.Mocked<IDeploymentGateService>;
-  };
-  return mod.__mockService;
+  return mockService as jest.Mocked<IDeploymentGateService>;
 }
 
 function createMockAgent(): jest.Mocked<IAgent> {
@@ -272,11 +272,7 @@ describe('DeploymentGateRunner', () => {
 
       await runner.run(agent, 'approve');
 
-      const { DeploymentGateBuilder } = jest.requireMock(
-        '../../actions/deployment-gate/DeploymentGateBuilder',
-      );
-      const builderInstance = DeploymentGateBuilder.create();
-      expect(builderInstance.withIssueTitle).toHaveBeenCalledWith(
+      expect(mockBuilderInstance.withIssueTitle).toHaveBeenCalledWith(
         'Manual approval required for workflow run 12345',
       );
     });
@@ -300,6 +296,13 @@ describe('DeploymentGateRunner', () => {
 
       expect(result.success).toBe(false);
       expect(result.error?.message).toBe('API rate limit');
+    });
+
+    it('sleep() resolves after the given delay', async () => {
+      const runner = new DeploymentGateRunner();
+      // Cast to bypass `protected` visibility for direct invocation
+      const sleep = (runner as unknown as { sleep: (ms: number) => Promise<void> }).sleep;
+      await expect(sleep.call(runner, 0)).resolves.toBeUndefined();
     });
   });
 });

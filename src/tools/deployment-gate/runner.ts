@@ -16,6 +16,10 @@ export class DeploymentGateRunner extends RunnerBase {
     ['approve', this.runApprove.bind(this)],
   ]);
 
+  constructor() {
+    super();
+  }
+
   /**
    * Approve step: Create an approval issue, poll for responses, resolve.
    * All GitHub API calls go through IDeploymentGateService (not direct Octokit).

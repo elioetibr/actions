@@ -29,6 +29,10 @@ export class TerraformRunner extends RunnerBase {
     ['execute', this.runExecute.bind(this)],
   ]);
 
+  constructor() {
+    super();
+  }
+
   /**
    * Execute step: Build and run the Terraform command.
    * All command execution goes through IAgent (not child_process).

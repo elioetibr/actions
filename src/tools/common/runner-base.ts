@@ -12,6 +12,8 @@ export abstract class RunnerBase implements IRunner {
    */
   protected abstract readonly steps: Map<string, (agent: IAgent) => Promise<IRunnerResult>>;
 
+  constructor() {}
+
   /**
    * Run a specific step of the tool
    * @param agent - The CI/CD agent

@@ -35,6 +35,10 @@ export class TerragruntRunner extends RunnerBase {
     ['execute', this.runExecute.bind(this)],
   ]);
 
+  constructor() {
+    super();
+  }
+
   /**
    * Execute step: Build and run the Terragrunt command.
    * All command execution goes through IAgent (not child_process).
