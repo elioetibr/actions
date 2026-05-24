@@ -28,9 +28,9 @@
     "prepare": "husky",
     "test": "bun scripts/test-isolated.ts",
     "test:bun": "bun test",
-    "test:coverage": "bun scripts/test-isolated.ts --coverage",
+    "test:coverage": "bun scripts/test-isolated.ts --coverage && bun scripts/clean-lcov.ts",
     "test:coverage:lcov": "bun test --coverage-reporter=lcov",
-    "test:coverage:report": "bun scripts/test-isolated.ts --coverage",
+    "test:coverage:report": "bun scripts/test-isolated.ts --coverage && bun scripts/clean-lcov.ts",
     "test:watch": "bun test --watch",
     "typecheck": "tsc --noEmit",
     "update": "bun update"
