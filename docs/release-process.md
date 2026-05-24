@@ -24,14 +24,16 @@ brew install jq
 
 ## Commit Convention
 
-All commits must follow [Conventional Commits](https://www.conventionalcommits.org/) for GitVersion and git-cliff to work correctly.
+All commits must follow
+[Conventional Commits](https://www.conventionalcommits.org/) for GitVersion and
+git-cliff to work correctly.
 
-| Prefix | Version Bump | Example |
-|--------|-------------|---------|
-| `feat:` | Minor | `feat: add terraform output parsing` |
-| `fix:` | Patch | `fix: handle empty ECR repository` |
-| `feat!:` or `BREAKING CHANGE:` | Major | `feat!: rename action inputs` |
-| `docs:`, `style:`, `refactor:`, `test:`, `ci:`, `chore:` | None | `docs: update README examples` |
+| Prefix                                                   | Version Bump | Example                              |
+| -------------------------------------------------------- | ------------ | ------------------------------------ |
+| `feat:`                                                  | Minor        | `feat: add terraform output parsing` |
+| `fix:`                                                   | Patch        | `fix: handle empty ECR repository`   |
+| `feat!:` or `BREAKING CHANGE:`                           | Major        | `feat!: rename action inputs`        |
+| `docs:`, `style:`, `refactor:`, `test:`, `ci:`, `chore:` | None         | `docs: update README examples`       |
 
 ## Quick Release
 
@@ -77,11 +79,12 @@ All four must pass before proceeding.
 make check-changes
 ```
 
-Verifies there are commits since the last tag. If no changes exist, the command fails with an error — there's nothing to release.
+Verifies there are commits since the last tag. If no changes exist, the command
+fails with an error — there's nothing to release.
 
 Output:
 
-```
+```text
 3 commit(s) since v0.1.0:
 abc1234 feat: add terraform output parsing
 def5678 fix: handle empty ECR repository
@@ -94,11 +97,13 @@ ghi9012 docs: update README
 make calculate-version
 ```
 
-Runs GitVersion once and writes the full JSON output to `.release-version`. All subsequent steps read from this file instead of re-running GitVersion. This prevents version drift after `commit-release` adds a new commit.
+Runs GitVersion once and writes the full JSON output to `.release-version`. All
+subsequent steps read from this file instead of re-running GitVersion. This
+prevents version drift after `commit-release` adds a new commit.
 
 Output:
 
-```
+```text
 Calculating version with GitVersion...
 Locked version: v1.2.0 (1.2.0)
   Tags:     v1.2.0, v1.2, v1
@@ -117,7 +122,9 @@ make changelog
 
 Requires `.release-version` from Step 3.
 
-Generates `CHANGELOG.md` using git-cliff with the commit parsers defined in `cliff.toml`. Groups commits by type (Features, Bug Fixes, Refactoring, etc.) with links to PRs and authors.
+Generates `CHANGELOG.md` using git-cliff with the commit parsers defined in
+`cliff.toml`. Groups commits by type (Features, Bug Fixes, Refactoring, etc.)
+with links to PRs and authors.
 
 ### Step 5: Generate release notes
 
@@ -127,7 +134,8 @@ make release-notes
 
 Requires `.release-version` from Step 3.
 
-Generates `RELEASE_NOTES.md` containing only the changes for this version (no header). This file is gitignored — it's used as the body for the GitHub release.
+Generates `RELEASE_NOTES.md` containing only the changes for this version (no
+header). This file is gitignored — it's used as the body for the GitHub release.
 
 ### Step 6: Commit release artifacts
 
@@ -139,11 +147,12 @@ Requires `.release-version` from Step 3.
 
 Stages `CHANGELOG.md` and `dist/`, then commits with:
 
-```
+```text
 chore(release): v1.2.0 [skip ci]
 ```
 
-The `[skip ci]` prevents this commit from triggering another CI run. Pushes to origin automatically.
+The `[skip ci]` prevents this commit from triggering another CI run. Pushes to
+origin automatically.
 
 ### Step 7: Create tags
 
@@ -155,13 +164,14 @@ Requires `.release-version` from Step 3.
 
 Creates three annotated tags:
 
-| Tag | Purpose | Example |
-|-----|---------|---------|
-| `vX.Y.Z` | Exact version | `v1.2.0` |
-| `vX.Y` | Floating minor (moves with each patch) | `v1.2` |
-| `vX` | Floating major (moves with each minor/patch) | `v1` |
+| Tag      | Purpose                                      | Example  |
+| -------- | -------------------------------------------- | -------- |
+| `vX.Y.Z` | Exact version                                | `v1.2.0` |
+| `vX.Y`   | Floating minor (moves with each patch)       | `v1.2`   |
+| `vX`     | Floating major (moves with each minor/patch) | `v1`     |
 
-If a tag already exists, it deletes the old tag and its associated GitHub release first, then recreates it.
+If a tag already exists, it deletes the old tag and its associated GitHub
+release first, then recreates it.
 
 ### Step 8: Update floating branches
 
@@ -192,11 +202,12 @@ This is the final step in `make release`. It:
 make release-with-branch
 ```
 
-Same as `make release` but creates a `releases/vX.Y.Z` branch from main before generating the changelog. Useful when you want a release branch for hotfixes.
+Same as `make release` but creates a `releases/vX.Y.Z` branch from main before
+generating the changelog. Useful when you want a release branch for hotfixes.
 
 ## Pipeline Diagram
 
-```
+```text
 make release
 │
 ├─ verify
@@ -244,7 +255,7 @@ uses: elioetibr/actions/iac/terraform@v1.2.0
 
 ## Version Lifecycle
 
-```
+```text
 main ──●──●──●──●──●──●──●──
        │        │        │
        v0.0.1   v0.1.0   v1.0.0
@@ -253,7 +264,8 @@ main ──●──●──●──●──●──●──●──
        v0       v0       v1      (floating major tags)
 ```
 
-Each release moves the floating tags and branches forward so consumers on `@v1` always get the latest stable release.
+Each release moves the floating tags and branches forward so consumers on `@v1`
+always get the latest stable release.
 
 ## Makefile Reference
 
@@ -261,26 +273,26 @@ Each release moves the floating tags and branches forward so consumers on `@v1` 
 make help
 ```
 
-| Target | Description |
-|--------|-------------|
-| `build` | Build dist/ with Vite |
-| `test` | Run tests |
-| `lint` | Run linter |
-| `typecheck` | Run TypeScript type checking |
-| `verify` | Run lint, typecheck, tests, and build |
-| `version` | Show the calculated semantic version (live) |
-| `check-changes` | Verify there are releasable changes since last tag |
-| `calculate-version` | Calculate and lock version into `.release-version` |
-| `changelog` | Generate CHANGELOG.md with git-cliff |
-| `release-notes` | Generate RELEASE_NOTES.md for the current version |
-| `release-branch` | Create a release branch (releases/vX.Y.Z) from main |
-| `commit-release` | Commit changelog and dist/ with [skip ci] |
-| `tag` | Create version tags (vX.Y.Z, vX.Y, vX) |
-| `floating-branches` | Update floating branches (vX, vX.Y) to point to HEAD |
-| `release` | Full release pipeline |
-| `release-with-branch` | Release with branch creation |
-| `clean` | Remove dist/ |
-| `clean-all` | Remove dist/, coverage/, node_modules/ |
+| Target                | Description                                          |
+| --------------------- | ---------------------------------------------------- |
+| `build`               | Build dist/ with Vite                                |
+| `test`                | Run tests                                            |
+| `lint`                | Run linter                                           |
+| `typecheck`           | Run TypeScript type checking                         |
+| `verify`              | Run lint, typecheck, tests, and build                |
+| `version`             | Show the calculated semantic version (live)          |
+| `check-changes`       | Verify there are releasable changes since last tag   |
+| `calculate-version`   | Calculate and lock version into `.release-version`   |
+| `changelog`           | Generate CHANGELOG.md with git-cliff                 |
+| `release-notes`       | Generate RELEASE_NOTES.md for the current version    |
+| `release-branch`      | Create a release branch (releases/vX.Y.Z) from main  |
+| `commit-release`      | Commit changelog and dist/ with [skip ci]            |
+| `tag`                 | Create version tags (vX.Y.Z, vX.Y, vX)               |
+| `floating-branches`   | Update floating branches (vX, vX.Y) to point to HEAD |
+| `release`             | Full release pipeline                                |
+| `release-with-branch` | Release with branch creation                         |
+| `clean`               | Remove dist/                                         |
+| `clean-all`           | Remove dist/, coverage/, node_modules/               |
 
 ## Troubleshooting
 
@@ -291,24 +303,33 @@ make help
 gitversion /output json | jq .
 ```
 
-Verify your branch matches a pattern in `GitVersion.yml`. The `no-bump-message` pattern means commits like `docs:`, `refactor:`, `test:` don't increment the version.
+Verify your branch matches a pattern in `GitVersion.yml`. The `no-bump-message`
+pattern means commits like `docs:`, `refactor:`, `test:` don't increment the
+version.
 
 ### git-cliff generates empty changelog
 
-Ensure commits follow conventional commit format. Check `cliff.toml` for the `commit_parsers` patterns.
+Ensure commits follow conventional commit format. Check `cliff.toml` for the
+`commit_parsers` patterns.
 
 ### "Error: .release-version not found"
 
-Run `make calculate-version` before running individual release steps. The `make release` target handles this automatically.
+Run `make calculate-version` before running individual release steps. The
+`make release` target handles this automatically.
 
 ### Tags fail to push
 
-Floating tags (`vX`, `vX.Y`) use `--force` since they must move. If you get permission errors, check your GitHub token has `contents: write` permission.
+Floating tags (`vX`, `vX.Y`) use `--force` since they must move. If you get
+permission errors, check your GitHub token has `contents: write` permission.
 
 ### `[skip ci]` not working
 
-GitHub Actions recognizes `[skip ci]` in the commit message. Ensure the commit message contains it exactly — the Makefile includes it in the `commit-release` target automatically.
+GitHub Actions recognizes `[skip ci]` in the commit message. Ensure the commit
+message contains it exactly — the Makefile includes it in the `commit-release`
+target automatically.
 
 ### Version drift after commit-release
 
-This was the reason for the `.release-version` file. If you see different versions in tags vs changelog, ensure you're using `make release` (which locks the version) rather than running individual steps with `make version` variables.
+This was the reason for the `.release-version` file. If you see different
+versions in tags vs changelog, ensure you're using `make release` (which locks
+the version) rather than running individual steps with `make version` variables.

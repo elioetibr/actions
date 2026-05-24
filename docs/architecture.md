@@ -15,7 +15,10 @@ Deep-dive into the design, patterns, and build pipeline of `elioetibr/actions`.
 
 ## Overview
 
-This monorepo provides three GitHub Actions that share a common compiled library. It follows the [GitTools/actions](https://github.com/GitTools/actions) monorepo pattern where consumer-facing directories contain only a thin shim (`main.mjs`) that delegates to compiled code in `dist/`.
+This monorepo provides three GitHub Actions that share a common compiled
+library. It follows the [GitTools/actions](https://github.com/GitTools/actions)
+monorepo pattern where consumer-facing directories contain only a thin shim
+(`main.mjs`) that delegates to compiled code in `dist/`.
 
 ```mermaid
 graph LR
@@ -48,13 +51,14 @@ graph LR
 Each action shim is just two lines:
 
 ```javascript
-import { run } from '../../../dist/tools/lib.mjs'
-await run('github', 'terraform', 'execute')
+import { run } from '../../../dist/tools/lib.mjs';
+await run('github', 'terraform', 'execute');
 ```
 
 ## Layered Architecture
 
-The codebase separates concerns into four layers. Each layer only depends on layers below it.
+The codebase separates concerns into four layers. Each layer only depends on
+layers below it.
 
 ```mermaid
 graph TB
@@ -98,12 +102,12 @@ graph TB
 
 ### Layer Descriptions
 
-| Layer | Directory | Responsibility |
-|-------|-----------|---------------|
-| **Entry Points** | `src/tools/lib.ts`, `*/main.mjs` | Central dispatcher; maps agent/runner names to factories |
-| **Abstractions** | `src/agents/interfaces.ts`, `src/tools/common/` | Platform-agnostic contracts for agents and runners |
-| **Implementations** | `src/agents/github/`, `src/actions/*/` | GitHub Actions agent, Builder + Service for each tool |
-| **Shared Libraries** | `src/libs/` | Parsers, formatters, version handling, constants |
+| Layer                | Directory                                       | Responsibility                                           |
+| -------------------- | ----------------------------------------------- | -------------------------------------------------------- |
+| **Entry Points**     | `src/tools/lib.ts`, `*/main.mjs`                | Central dispatcher; maps agent/runner names to factories |
+| **Abstractions**     | `src/agents/interfaces.ts`, `src/tools/common/` | Platform-agnostic contracts for agents and runners       |
+| **Implementations**  | `src/agents/github/`, `src/actions/*/`          | GitHub Actions agent, Builder + Service for each tool    |
+| **Shared Libraries** | `src/libs/`                                     | Parsers, formatters, version handling, constants         |
 
 ### Dependency Rules
 
@@ -121,13 +125,15 @@ graph LR
   style LIBS fill:#fff3e0,stroke:#e65100
 ```
 
-`src/libs/` is a leaf dependency. It must never import from `src/actions/`, `src/agents/`, or `src/tools/`.
+`src/libs/` is a leaf dependency. It must never import from `src/actions/`,
+`src/agents/`, or `src/tools/`.
 
 ## Design Patterns
 
 ### Builder + Factory Pattern
 
-Each action uses a **Fluent Builder** for configuration and produces an **Immutable Service** that constructs command arguments.
+Each action uses a **Fluent Builder** for configuration and produces an
+**Immutable Service** that constructs command arguments.
 
 ```mermaid
 classDiagram
@@ -173,11 +179,15 @@ classDiagram
   TerraformBuilderFactory --> TerraformService : returns
 ```
 
-**Why this pattern?** The Builder allows flexible configuration via a fluent API. Once `.build()` is called, the resulting Service is immutable — the command args cannot be accidentally modified. The Factory (`fromAgent()`) bridges the IAgent input-reading interface with the Builder.
+**Why this pattern?** The Builder allows flexible configuration via a fluent
+API. Once `.build()` is called, the resulting Service is immutable — the command
+args cannot be accidentally modified. The Factory (`fromAgent()`) bridges the
+IAgent input-reading interface with the Builder.
 
 ### Agent Abstraction (Strategy Pattern)
 
-The `IAgent` interface decouples all tool logic from GitHub Actions specifics. This enables:
+The `IAgent` interface decouples all tool logic from GitHub Actions specifics.
+This enables:
 
 - Unit testing with mock agents (no `@actions/core` dependency)
 - Future support for GitLab CI, Azure Pipelines, or local CLI
@@ -217,7 +227,9 @@ classDiagram
 
 ### Runner Step Dispatch (Template Method)
 
-Each tool runner extends `RunnerBase` and registers steps in a `Map`. The base class handles dispatch, error wrapping, and provides `success()`/`failure()` helpers.
+Each tool runner extends `RunnerBase` and registers steps in a `Map`. The base
+class handles dispatch, error wrapping, and provides `success()`/`failure()`
+helpers.
 
 ```mermaid
 classDiagram
@@ -252,7 +264,9 @@ classDiagram
 
 ## Build Pipeline
 
-[Vite](https://vitejs.dev/) bundles `src/tools/lib.ts` into self-contained ESM output. All npm dependencies (`@actions/core`, `@actions/io`, etc.) are bundled; only Node.js built-in modules are externalized.
+[Vite](https://vitejs.dev/) bundles `src/tools/lib.ts` into self-contained ESM
+output. All npm dependencies (`@actions/core`, `@actions/io`, etc.) are bundled;
+only Node.js built-in modules are externalized.
 
 ```mermaid
 graph TB
@@ -300,27 +314,30 @@ graph TB
 
 The `manualChunks` function in `vite.config.mts` splits modules by tool:
 
-| Module Path Contains | Chunk Name | Output File |
-|---------------------|------------|-------------|
-| `src/tools/docker/` | docker-buildx-images | `libs/docker-buildx-images.mjs` |
-| `src/tools/terraform/` | terraform | `libs/terraform.mjs` |
-| `src/tools/terragrunt/` | terragrunt | `libs/terragrunt.mjs` |
-| `src/tools/common/` | tools | `libs/tools.mjs` |
-| `src/agents/` | agents | `libs/agents.mjs` |
+| Module Path Contains    | Chunk Name           | Output File                     |
+| ----------------------- | -------------------- | ------------------------------- |
+| `src/tools/docker/`     | docker-buildx-images | `libs/docker-buildx-images.mjs` |
+| `src/tools/terraform/`  | terraform            | `libs/terraform.mjs`            |
+| `src/tools/terragrunt/` | terragrunt           | `libs/terragrunt.mjs`           |
+| `src/tools/common/`     | tools                | `libs/tools.mjs`                |
+| `src/agents/`           | agents               | `libs/agents.mjs`               |
 
 This ensures each action only loads the chunks it needs at runtime.
 
 ### Externalization
 
-Only Node.js 24 built-in modules are externalized (not bundled). The `sea` module is filtered out since it does not exist in the GitHub Actions Node 24 runtime.
+Only Node.js 24 built-in modules are externalized (not bundled). The `sea`
+module is filtered out since it does not exist in the GitHub Actions Node 24
+runtime.
 
-```
-node24Builtins = builtinModules.filter(m => !m.includes('sea'))
+```js
+node24Builtins = builtinModules.filter(m => !m.includes('sea'));
 ```
 
 ## CI/CD Workflow
 
-The CI pipeline runs on every push and pull request. On pushes to `main`, it also triggers the release job.
+The CI pipeline runs on every push and pull request. On pushes to `main`, it
+also triggers the release job.
 
 ```mermaid
 graph TB
@@ -373,7 +390,8 @@ The workflow uses GitHub's concurrency groups:
 
 ## Release Pipeline
 
-The Makefile automates the full release process using GitVersion + git-cliff + GitHub CLI.
+The Makefile automates the full release process using GitVersion + git-cliff +
+GitHub CLI.
 
 ```mermaid
 graph TB
@@ -422,7 +440,9 @@ graph TB
   style GH_REL fill:#e8f5e9
 ```
 
-The `.release-version` file locks the version calculated in step 3. All subsequent steps read from this file to prevent version drift after the commit-release step adds a new commit.
+The `.release-version` file locks the version calculated in step 3. All
+subsequent steps read from this file to prevent version drift after the
+commit-release step adds a new commit.
 
 See [Release Process](./release-process.md) for the full step-by-step guide.
 
@@ -444,11 +464,15 @@ Creates multi-architecture Docker manifests from AMD64 and ARM64 images.
     semVer: '1.0.0'
 ```
 
-**Key inputs:** `ecrRegistry`, `ecrRepository`, `amd64MetaTags`, `arm64MetaTags`, `manifestMetaTags`, `manifestMetaAnnotations`, `semVer`, `dryRun`
+**Key inputs:** `ecrRegistry`, `ecrRepository`, `amd64MetaTags`,
+`arm64MetaTags`, `manifestMetaTags`, `manifestMetaAnnotations`, `semVer`,
+`dryRun`
 
-**Key outputs:** `imageUri`, `buildXArgs`, `major`, `minor`, `patch`, `fullVersion`
+**Key outputs:** `imageUri`, `buildXArgs`, `major`, `minor`, `patch`,
+`fullVersion`
 
-See [Docker BuildX ImageTools README](../docker/buildx/images/README.md) for full documentation.
+See [Docker BuildX ImageTools README](../docker/buildx/images/README.md) for
+full documentation.
 
 ### Terraform
 
@@ -464,11 +488,15 @@ Runs Terraform commands with a fluent builder API.
     targets: 'module.vpc,module.eks'
 ```
 
-**Supported commands:** `init`, `validate`, `fmt`, `plan`, `apply`, `destroy`, `output`, `show`
+**Supported commands:** `init`, `validate`, `fmt`, `plan`, `apply`, `destroy`,
+`output`, `show`
 
-**Key inputs:** `command`, `working-directory`, `variables`, `var-files`, `backend-config`, `targets`, `auto-approve`, `plan-file`, `parallelism`, `dry-run`
+**Key inputs:** `command`, `working-directory`, `variables`, `var-files`,
+`backend-config`, `targets`, `auto-approve`, `plan-file`, `parallelism`,
+`dry-run`
 
-**Key outputs:** `command`, `command-args`, `command-string`, `exit-code`, `stdout`, `stderr`
+**Key outputs:** `command`, `command-args`, `command-string`, `exit-code`,
+`stdout`, `stderr`
 
 See [Terraform README](../iac/terraform/README.md) for full documentation.
 
@@ -486,11 +514,15 @@ Runs Terragrunt commands with `run-all` support for multi-module operations.
     include-dirs: 'modules/vpc,modules/eks'
 ```
 
-**Supported commands:** `init`, `validate`, `fmt`, `hclfmt`, `plan`, `apply`, `destroy`, `output`, `graph-dependencies`, `validate-inputs`
+**Supported commands:** `init`, `validate`, `fmt`, `hclfmt`, `plan`, `apply`,
+`destroy`, `output`, `graph-dependencies`, `validate-inputs`
 
-**Key inputs:** All Terraform inputs plus `run-all`, `terragrunt-config`, `terragrunt-parallelism`, `include-dirs`, `exclude-dirs`, `iam-role`, `source-map`, `strict-include`
+**Key inputs:** All Terraform inputs plus `run-all`, `terragrunt-config`,
+`terragrunt-parallelism`, `include-dirs`, `exclude-dirs`, `iam-role`,
+`source-map`, `strict-include`
 
-**Key outputs:** `command`, `command-args`, `command-string`, `exit-code`, `stdout`, `stderr`
+**Key outputs:** `command`, `command-args`, `command-string`, `exit-code`,
+`stdout`, `stderr`
 
 See [Terragrunt README](../iac/terragrunt/README.md) for full documentation.
 
@@ -539,7 +571,7 @@ graph TB
 
 #### Step 1: Define Interfaces
 
-```
+```text
 src/actions/my-tool/
 ├── interfaces/
 │   ├── IMyToolBuilder.ts     # Builder fluent API contract
@@ -600,8 +632,8 @@ runs:
 
 ```javascript
 // my-tool/main.mjs
-import { run } from '../dist/tools/lib.mjs'
-await run('github', 'my-tool', 'execute')
+import { run } from '../dist/tools/lib.mjs';
+await run('github', 'my-tool', 'execute');
 ```
 
 #### Step 6: Add Vite Chunk
@@ -618,15 +650,18 @@ To support a platform other than GitHub Actions:
 
 1. Implement the `IAgent` interface in `src/agents/my-platform/agent.ts`
 2. Register it in `src/tools/lib.ts` under the `agents` map
-3. Create a new shim that calls `run('my-platform', ...)` instead of `run('github', ...)`
+3. Create a new shim that calls `run('my-platform', ...)` instead of
+   `run('github', ...)`
 
-No changes to runners, builders, or services are needed — they only depend on the `IAgent` interface.
+No changes to runners, builders, or services are needed — they only depend on
+the `IAgent` interface.
 
 ## Testing Strategy
 
-Tests are co-located with source files (`*.test.ts`). The project enforces 90% coverage thresholds.
+Tests are co-located with source files (`*.test.ts`). The project enforces 90%
+coverage thresholds.
 
-```
+```text
 src/actions/docker/buildx/images/
 ├── DockerBuildXImageToolsBuilder.ts
 ├── DockerBuildXImageToolsBuilder.test.ts      # Unit tests
@@ -640,9 +675,9 @@ src/actions/docker/buildx/images/
 
 ### Testing Layers
 
-| Layer | What to Test | How |
-|-------|-------------|-----|
-| Builders | Fluent API, argument construction | Direct instantiation, assert `buildCommand()` output |
-| Services | Command string formatting | Direct instantiation with known args |
-| Runners | Step dispatch, error handling | Mock `IAgent`, verify outputs |
-| Factories | Input-to-builder mapping | Mock `IAgent.getInput()`, verify service output |
+| Layer     | What to Test                      | How                                                  |
+| --------- | --------------------------------- | ---------------------------------------------------- |
+| Builders  | Fluent API, argument construction | Direct instantiation, assert `buildCommand()` output |
+| Services  | Command string formatting         | Direct instantiation with known args                 |
+| Runners   | Step dispatch, error handling     | Mock `IAgent`, verify outputs                        |
+| Factories | Input-to-builder mapping          | Mock `IAgent.getInput()`, verify service output      |

@@ -37,7 +37,6 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
           fetch-depth: 0
           fetch-tags: true
-          token: ${{ steps.app-token.outputs.token || github.token }}
 
       - name: Run actionlint
         uses: reviewdog/action-actionlint@v1
@@ -57,7 +56,6 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
           fetch-depth: 0
           fetch-tags: true
-          token: ${{ steps.app-token.outputs.token || github.token }}
 
       - uses: actions/setup-python@v6
         with:
@@ -78,7 +76,6 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
           fetch-depth: 0
           fetch-tags: true
-          token: ${{ steps.app-token.outputs.token || github.token }}
 
       - name: Run markdownlint-cli2
         uses: DavidAnson/markdownlint-cli2-action@v23
@@ -88,6 +85,10 @@ jobs:
             !node_modules
             !.venv
             !CHANGELOG.md
+            !RELEASE_NOTES.md
+            !VIOLATIONS.md
+            !docs/plans/**
+            !.claude/**
 
   action-docs-check:
     name: Action Docs Check
@@ -100,7 +101,6 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
           fetch-depth: 0
           fetch-tags: true
-          token: ${{ steps.app-token.outputs.token || github.token }}
 
       - uses: actions/setup-node@v6
         with:

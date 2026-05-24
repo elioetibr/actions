@@ -1,0 +1,11 @@
+.claude/
+.husky/
+.idea/
+.remember/
+.venv/
+CHANGELOG.md
+RELEASE_NOTES.md
+VIOLATIONS.md
+coverage/
+docs/plans/
+node_modules/

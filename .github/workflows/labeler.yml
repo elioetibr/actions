@@ -55,31 +55,26 @@ jobs:
     name: Label version bump (GitVersion)
     runs-on: ubuntu-latest
     steps:
-      - name: Get PR title
-        id: pr
-        run: |
-          echo "title=${{ github.event.pull_request.title }}" >> $GITHUB_OUTPUT
-
       - name: Determine version bump
         id: bump
+        env:
+          TITLE: ${{ github.event.pull_request.title }}
         run: |
-          TITLE="${{ steps.pr.outputs.title }}"
-
           # GitVersion patterns (matching GitVersion.yml)
           # Major: breaking change (! before :) or BREAKING CHANGE:
           if [[ "$TITLE" =~ ^(feat|fix|refactor|perf|build|ci|chore|docs|style|test)(\(.+\))?!: ]] || [[ "$TITLE" =~ ^BREAKING[\ -]CHANGE: ]]; then
-            echo "bump=major" >> $GITHUB_OUTPUT
+            echo "bump=major" >> "$GITHUB_OUTPUT"
           # Minor: feat
           elif [[ "$TITLE" =~ ^feat(\(.+\))?: ]]; then
-            echo "bump=minor" >> $GITHUB_OUTPUT
+            echo "bump=minor" >> "$GITHUB_OUTPUT"
           # Patch: fix
           elif [[ "$TITLE" =~ ^fix(\(.+\))?: ]]; then
-            echo "bump=patch" >> $GITHUB_OUTPUT
+            echo "bump=patch" >> "$GITHUB_OUTPUT"
           # No bump: docs, style, refactor, perf, test, build, ci, chore
           elif [[ "$TITLE" =~ ^(docs|style|refactor|perf|test|build|ci|chore|init)(\(.+\))?: ]]; then
-            echo "bump=none" >> $GITHUB_OUTPUT
+            echo "bump=none" >> "$GITHUB_OUTPUT"
           else
-            echo "bump=unknown" >> $GITHUB_OUTPUT
+            echo "bump=unknown" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Remove existing bump labels
