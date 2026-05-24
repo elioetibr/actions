@@ -26,13 +26,181 @@ concurrency:
   cancel-in-progress: ${{ github.ref_name != github.event.repository.default_branch }}
 
 jobs:
+  actionlint:
+    name: Action Lint
+    runs-on: ${{ vars.RUNS_ON_ARM64 || vars.RUNS_ON || 'ubuntu-latest' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          # Use PR head SHA on pull_request events to avoid synthetic merge commit
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          fetch-tags: true
+          token: ${{ steps.app-token.outputs.token || github.token }}
+
+      - name: Run actionlint
+        uses: reviewdog/action-actionlint@v1
+        with:
+          reporter: github-check
+          fail_level: error
+          actionlint_flags: -shellcheck=shellcheck
+
+  yamllint:
+    name: Yaml Lint
+    runs-on: ${{ vars.RUNS_ON_ARM64 || vars.RUNS_ON || 'ubuntu-latest' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          # Use PR head SHA on pull_request events to avoid synthetic merge commit
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          fetch-tags: true
+          token: ${{ steps.app-token.outputs.token || github.token }}
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.x'
+      - name: Install yamllint
+        run: pip install --upgrade yamllint
+      - name: Run yamllint
+        run: yamllint .
+
+  markdownlint:
+    name: Markdown Lint
+    runs-on: ${{ vars.RUNS_ON_ARM64 || vars.RUNS_ON || 'ubuntu-latest' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          # Use PR head SHA on pull_request events to avoid synthetic merge commit
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          fetch-tags: true
+          token: ${{ steps.app-token.outputs.token || github.token }}
+
+      - name: Run markdownlint-cli2
+        uses: DavidAnson/markdownlint-cli2-action@v23
+        with:
+          globs: |
+            **/*.md
+            !node_modules
+            !.venv
+            !CHANGELOG.md
+
+  action-docs-check:
+    name: Action Docs Check
+    runs-on: ${{ vars.RUNS_ON_ARM64 || vars.RUNS_ON || 'ubuntu-latest' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          # Use PR head SHA on pull_request events to avoid synthetic merge commit
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          fetch-tags: true
+          token: ${{ steps.app-token.outputs.token || github.token }}
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: '.nvmrc'
+      - name: Check action READMEs are in sync with action.yml
+        shell: bash
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          mapfile -t actions < <(find actions -mindepth 2 -maxdepth 2 -name action.yml)
+          if (( ${#actions[@]} == 0 )); then
+            echo "No actions present; action-docs check is a no-op."
+            exit 0
+          fi
+          fail=0
+          for f in "${actions[@]}"; do
+            dir="$(dirname "$f")"
+            echo "::group::Checking $dir"
+            if [[ ! -f "$dir/README.md" ]]; then
+              echo "::error file=$f::Missing README.md for $dir. Create it with action-docs markers, then run: npx action-docs --update-readme --source $f"
+              fail=1
+              echo "::endgroup::"
+              continue
+            fi
+            cp "$dir/README.md" "$dir/README.md.bak"
+            if ! npx --yes action-docs@^2 --no-banner --source "$f" --update-readme; then
+              echo "::error file=$f::action-docs failed to process $f"
+              mv "$dir/README.md.bak" "$dir/README.md"
+              fail=1
+              echo "::endgroup::"
+              continue
+            fi
+            if ! diff -q "$dir/README.md" "$dir/README.md.bak" >/dev/null; then
+              echo "::error file=$dir/README.md::README.md is out of sync with action.yml. Run: npx action-docs --update-readme --source $f"
+              diff -u "$dir/README.md.bak" "$dir/README.md" || true
+              fail=1
+            fi
+            mv "$dir/README.md.bak" "$dir/README.md"
+            echo "::endgroup::"
+          done
+          exit "$fail"
+
+  gitleaks:
+    name: Gitleaks
+    runs-on: ${{ vars.RUNS_ON_ARM64 || vars.RUNS_ON || 'ubuntu-latest' }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          # gitleaks scans full git history for leaked secrets; the
+          # default shallow checkout would miss anything but HEAD.
+          fetch-depth: 0
+      - name: Run gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          # Org-level license secret (visibility: all). Required by
+          # gitleaks-action@v2 for organization-owned repos.
+          GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }}
+
+  all-green:
+    name: All Green
+    runs-on: ${{ vars.RUNS_ON_ARM64 || vars.RUNS_ON || 'ubuntu-latest' }}
+    needs: [actionlint, yamllint, markdownlint, action-docs-check, gitleaks]
+    if: always()
+    steps:
+      - name: Verify all required checks passed
+        shell: bash -l {0}
+        run: |
+          #!/usr/bin/env bash
+
+          set -euo pipefail
+
+          results='${{ toJSON(needs) }}'
+          echo "$results"
+          if echo "$results" | grep -Eq '"result":\s*"(failure|cancelled)"'; then
+            echo "::error::One or more required checks failed or were cancelled."
+            exit 1
+          fi
+          echo "All required checks passed."
+
   build:
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.RUNS_ON_ARM64 || vars.RUNS_ON || 'ubuntu-latest' }}
+    needs: [actionlint, yamllint, markdownlint, action-docs-check, gitleaks, all-green]
+    # Skip when the previous commit was the auto-release CHANGELOG bump.
+    # Belt-and-braces: the commit also carries `[skip ci]` which GitHub
+    # Actions itself honors, so this is defense-in-depth.
+    if: ${{
+      always() &&
+      needs.all-green.result == 'success' &&
+      !startsWith(github.event.head_commit.message, 'chore(release):') ||
+      !contains(github.event.head_commit.message, 'ci skip') ||
+      !contains(github.event.head_commit.message, '[ci skip]') ||
+      !contains(github.event.head_commit.message, 'skip ci') ||
+      !contains(github.event.head_commit.message, '[skip ci]')
+      }}
     steps:
       - uses: actions/create-github-app-token@v3
         id: app-token
         with:
-          app-id: ${{ vars.APP_ID }}
+          client-id: ${{ vars.CLIENT_ID }}
           owner: ${{ github.repository_owner }}
           repositories: ${{ github.event.repository.name }}
           private-key: ${{ secrets.PRIVATE_KEY }}
@@ -104,13 +272,13 @@ jobs:
   release:
     name: Release
     runs-on: ubuntu-latest
-    if: success() && github.event_name == 'push' && github.ref_name == github.event.repository.default_branch
     needs: [build]
+    if: success() && github.event_name == 'push' && github.ref_name == github.event.repository.default_branch
     steps:
       - uses: actions/create-github-app-token@v3
         id: app-token
         with:
-          app-id: ${{ vars.APP_ID }}
+          client-id: ${{ vars.CLIENT_ID }}
           owner: ${{ github.repository_owner }}
           repositories: ${{ github.event.repository.name }}
           private-key: ${{ secrets.PRIVATE_KEY }}
@@ -118,8 +286,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
         with:
-          fetch-depth: 0
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.ref }}
           token: ${{ steps.app-token.outputs.token || github.token }}
+          fetch-depth: '0'
+          fetch-tags: 'true'
 
       - name: Cache GitVersion tool
         uses: actions/cache@v5

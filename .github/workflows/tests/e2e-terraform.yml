@@ -13,6 +13,11 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.ref }}
+          token: ${{ steps.app-token.outputs.token || github.token }}
+          fetch-depth: '0'
+          fetch-tags: 'true'
 
       - name: Setup Node 24
         uses: actions/setup-node@v6
@@ -71,6 +76,11 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.ref }}
+          token: ${{ steps.app-token.outputs.token || github.token }}
+          fetch-depth: '0'
+          fetch-tags: 'true'
 
       - name: Setup Node 24
         uses: actions/setup-node@v6
