@@ -23,13 +23,14 @@ function stubNodeSqlite(): Plugin {
   return {
     name: 'stub-node-sqlite',
     enforce: 'pre',
-    transform(code, id) {
+    transform(code, _id) {
       if (sqliteRe.test(code)) {
         return {
           code: code.replace(sqliteRe, '({})'),
           map: null,
         };
       }
+      return undefined;
     },
   };
 }
@@ -83,6 +84,7 @@ export default defineConfig({
           if (id.includes('src/tools/pullrequester/')) return 'pullrequester';
           if (id.includes('src/tools/common/')) return 'tools';
           if (id.includes('src/agents/')) return 'agents';
+          return undefined;
         },
       },
     },

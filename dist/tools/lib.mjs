@@ -1,5 +1,5 @@
 import { t as createGitHubActionsAgent } from "./libs/agents.mjs";
-import { p as RunnerBase, t as createDeploymentGateRunner } from "./libs/deployment-gate.mjs";
+import { f as RunnerBase, t as createDeploymentGateRunner } from "./libs/deployment-gate.mjs";
 import { t as createDockerImageToolsRunner } from "./libs/docker-buildx-images.mjs";
 import { t as createTerraformRunner } from "./libs/terraform.mjs";
 import { t as createTerragruntRunner } from "./libs/terragrunt.mjs";
