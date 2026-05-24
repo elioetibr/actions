@@ -1,4 +1,6 @@
-import { Context } from '@actions/github/lib/context';
+import type * as github from '@actions/github';
+
+type Context = typeof github.context;
 import { GitHubContextService, createGitHubContextService } from './GitHubContextService';
 import { IGitHubContext } from '../../interfaces';
 
@@ -39,22 +41,30 @@ describe('GitHubContextService', () => {
     });
 
     test('throws error when context is undefined', () => {
-      expect(() => new GitHubContextService(undefined as any)).toThrow('GitHub context is required');
+      expect(() => new GitHubContextService(undefined as any)).toThrow(
+        'GitHub context is required',
+      );
     });
 
     test('throws error when context is missing ref', () => {
       const mockContext = createMockContext({ ref: '' });
-      expect(() => new GitHubContextService(mockContext)).toThrow('Invalid GitHub context: missing ref or sha');
+      expect(() => new GitHubContextService(mockContext)).toThrow(
+        'Invalid GitHub context: missing ref or sha',
+      );
     });
 
     test('throws error when context is missing sha', () => {
       const mockContext = createMockContext({ sha: '' });
-      expect(() => new GitHubContextService(mockContext)).toThrow('Invalid GitHub context: missing ref or sha');
+      expect(() => new GitHubContextService(mockContext)).toThrow(
+        'Invalid GitHub context: missing ref or sha',
+      );
     });
 
     test('throws error when context is missing both ref and sha', () => {
       const mockContext = createMockContext({ ref: '', sha: '' });
-      expect(() => new GitHubContextService(mockContext)).toThrow('Invalid GitHub context: missing ref or sha');
+      expect(() => new GitHubContextService(mockContext)).toThrow(
+        'Invalid GitHub context: missing ref or sha',
+      );
     });
   });
 
@@ -233,7 +243,9 @@ describe('GitHubContextService', () => {
 
     test('throws error for invalid context', () => {
       const mockContext = createMockContext({ sha: '' });
-      expect(() => createGitHubContextService(mockContext)).toThrow('Invalid GitHub context: missing ref or sha');
+      expect(() => createGitHubContextService(mockContext)).toThrow(
+        'Invalid GitHub context: missing ref or sha',
+      );
     });
   });
 

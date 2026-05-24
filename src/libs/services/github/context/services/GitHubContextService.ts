@@ -1,6 +1,8 @@
 // noinspection JSUnusedGlobalSymbols
 
-import { Context } from '@actions/github/lib/context';
+import type * as github from '@actions/github';
+
+type Context = typeof github.context;
 import { IGitHubContext, IGitHubContextService } from '../../interfaces';
 
 /**

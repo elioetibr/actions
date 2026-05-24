@@ -11,6 +11,8 @@ import type { IVersionFileReader } from './interfaces';
  * Compatible with tfenv and tgenv version file conventions.
  */
 export class VersionFileReader implements IVersionFileReader {
+  constructor() {}
+
   /**
    * Walk from startDir upward looking for the version file.
    * Stops at the filesystem root or $HOME.

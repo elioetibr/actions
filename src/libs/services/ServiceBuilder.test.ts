@@ -1,7 +1,10 @@
-import { Context } from '@actions/github/lib/context';
+import type * as github from '@actions/github';
+
+type Context = typeof github.context;
 import { ServiceBuilder, createServices } from './ServiceBuilder';
 import { IGitHubContextService } from './github';
 import { ISemanticVersionService } from './version';
+import { createGitHubContextService } from './github/context/services';
 
 // Mock the dependencies
 jest.mock('@actions/github', () => ({
@@ -65,8 +68,7 @@ describe('ServiceBuilder', () => {
       }),
     } as jest.Mocked<IGitHubContextService>;
 
-    const { createGitHubContextService } = require('./github/context/services');
-    createGitHubContextService.mockReturnValue(mockGitHubContextService);
+    (createGitHubContextService as jest.Mock).mockReturnValue(mockGitHubContextService);
   });
 
   afterEach(() => {
@@ -91,9 +93,7 @@ describe('ServiceBuilder', () => {
       const result = builder.withGitHubContext();
 
       expect(result).toBe(builder);
-      expect(require('./github/context/services').createGitHubContextService).toHaveBeenCalledWith(
-        mockContext,
-      );
+      expect(createGitHubContextService).toHaveBeenCalledWith(mockContext);
     });
   });
 
@@ -139,9 +139,7 @@ describe('ServiceBuilder', () => {
 
       expect(result).toBeDefined();
       expect(result.githubContextService).toBe(mockGitHubContextService);
-      expect(require('./github/context/services').createGitHubContextService).toHaveBeenCalledWith(
-        mockContext,
-      );
+      expect(createGitHubContextService).toHaveBeenCalledWith(mockContext);
     });
 
     it('should call withGitHubContext and build in sequence', () => {
@@ -212,8 +210,7 @@ describe('createServices factory function', () => {
       }),
     } as jest.Mocked<IGitHubContextService>;
 
-    const { createGitHubContextService } = require('./github/context/services');
-    createGitHubContextService.mockReturnValue(mockGitHubContextService);
+    (createGitHubContextService as jest.Mock).mockReturnValue(mockGitHubContextService);
   });
 
   it('should create services using default github context when no context provided', () => {
@@ -231,6 +228,8 @@ describe('createServices factory function', () => {
 
     // The actual createServices function will fail because it requires all services
     // This is expected behavior - the factory requires the semantic version service
-    expect(() => createServices(mockContext)).toThrow('Missing required services: semanticVersionService');
+    expect(() => createServices(mockContext)).toThrow(
+      'Missing required services: semanticVersionService',
+    );
   });
 });

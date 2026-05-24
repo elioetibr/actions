@@ -149,6 +149,8 @@ export class SemanticVersionBuilder {
     customRegex: SIMPLE_SEMVER_REGEX,
   };
 
+  constructor() {}
+
   /**
    * Static factory method to start building
    */

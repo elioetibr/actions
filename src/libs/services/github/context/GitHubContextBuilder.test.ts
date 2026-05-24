@@ -343,9 +343,7 @@ describe('GitHubContextBuilder', () => {
 
   describe('edge cases', () => {
     test('handles empty strings correctly', () => {
-      builder
-        .withSha('')
-        .withRef('refs/heads/main');
+      builder.withSha('').withRef('refs/heads/main');
 
       expect(() => builder.build()).toThrow('Invalid GitHub context: missing ref or sha');
     });

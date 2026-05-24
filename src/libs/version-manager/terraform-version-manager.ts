@@ -78,6 +78,8 @@ export class TerraformVersionResolver extends BaseVersionResolver {
  * method — NOT child_process. This is safe execFile-based invocation.
  */
 export class TerraformVersionInstaller implements IVersionInstaller {
+  constructor() {}
+
   async isInstalled(version: string): Promise<boolean> {
     const dir = getCacheDir('terraform', version);
     const binaryName = getPlatform().os === 'windows' ? 'terraform.exe' : 'terraform';

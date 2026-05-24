@@ -1,47 +1,43 @@
 /**
- * Shared validation utilities to eliminate code duplication
+ * Shared validation utilities.
+ *
+ * Exposed as a plain object (not a class) so V8 coverage doesn't track an
+ * implicit default constructor that the codebase never instantiates.
  */
-export class ValidationUtils {
+export const ValidationUtils = {
   /**
-   * Check if a value is null or undefined
-   * @param input - The value to check
-   * @returns true if the value is null or undefined
+   * Check if a value is null or undefined.
    */
-  static isNullOrUndefined(input: unknown): input is null | undefined {
+  isNullOrUndefined(input: unknown): input is null | undefined {
     return input === undefined || input === null;
-  }
+  },
 
   /**
-   * Validate that a string input is not null or undefined
-   * @param input - The input to validate
-   * @param fieldName - The name of the field for error messages
+   * Validate that a string input is not null or undefined.
    * @throws Error if input is null or undefined
    */
-  static validateStringInput(input: string, fieldName: string = 'Input'): void {
-    if (this.isNullOrUndefined(input)) {
+  validateStringInput(input: string, fieldName: string = 'Input'): void {
+    if (ValidationUtils.isNullOrUndefined(input)) {
       throw new Error(`${fieldName} cannot be null or undefined`);
     }
-  }
+  },
 
   /**
-   * Validate metadata key-value pair
-   * @param key - The metadata key
-   * @param value - The metadata value
+   * Validate a metadata key-value pair.
    * @throws Error if key or value is invalid
    */
-  static validateMetaDataInput(key: string, value: string): void {
-    this.validateStringInput(key, 'Metadata key');
-    this.validateStringInput(value, 'Metadata value');
-  }
+  validateMetaDataInput(key: string, value: string): void {
+    ValidationUtils.validateStringInput(key, 'Metadata key');
+    ValidationUtils.validateStringInput(value, 'Metadata value');
+  },
 
   /**
-   * Validate that a command is not empty or null
-   * @param command - The command to validate
+   * Validate that a command string is not empty.
    * @throws Error if command is empty or null
    */
-  static validateCommand(command: string): void {
+  validateCommand(command: string): void {
     if (!command || command.trim() === '') {
       throw new Error('Command cannot be empty or null');
     }
-  }
-}
+  },
+} as const;

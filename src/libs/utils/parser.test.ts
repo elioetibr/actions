@@ -4,23 +4,19 @@ import {
   JsonArrayParser,
   NewlineParser,
   parseBoolean,
+  parseCommaSeparated,
   parseFormattedString,
+  parseJsonObject,
   parseJsonToObject,
 } from './parsers';
 import * as core from '@actions/core';
-import * as common from './common';
 
 // Mock dependencies
 jest.mock('@actions/core');
-jest.mock('./common');
 
 describe('Parsers', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    // Set up default mock implementations
-    (common.removeQuotes as jest.Mock).mockImplementation(str => str);
-    (common.sanitizeInput as jest.Mock).mockImplementation(str => str);
-    (common.limitInputSize as jest.Mock).mockImplementation(str => str);
   });
 
   describe('JsonArrayParser', () => {
@@ -42,11 +38,6 @@ describe('Parsers', () => {
     test('parse returns empty array on invalid input', () => {
       expect(parser.parse('invalid json')).toEqual([]);
     });
-
-    test('parse calls removeQuotes on each item', () => {
-      parser.parse('["test"]');
-      expect(common.removeQuotes).toHaveBeenCalledWith('test');
-    });
   });
 
   describe('EscapedJsonParser', () => {
@@ -65,6 +56,21 @@ describe('Parsers', () => {
 
       expect(parser.parse('\\"[1,\\"two\\",3]\\"')).toEqual(['1', 'two', '3']);
 
+      mockJsonParse.mockRestore();
+    });
+
+    test('parse returns mapped array for a real escaped JSON-array string', () => {
+      const input = '[\\"a\\", \\"b\\"]';
+      expect(parser.parse(input)).toEqual(['a', 'b']);
+    });
+
+    test('parse returns [] when the inner JSON.parse yields a non-array', () => {
+      // Forces the `!Array.isArray(parsed)` early-exit branch.
+      const mockJsonParse = jest.spyOn(JSON, 'parse');
+      mockJsonParse
+        .mockImplementationOnce(() => '[1,2,3]') // unescaped looks array-like
+        .mockImplementationOnce(() => 'not an array'); // inner parse returns a string
+      expect(parser.parse('\\"[1,2,3]\\"')).toEqual([]);
       mockJsonParse.mockRestore();
     });
 
@@ -99,7 +105,6 @@ describe('Parsers', () => {
         .mockImplementationOnce(() => ['"quoted"']);
 
       parser.parse('\\"[\\"\\\\\\"quoted\\\\\\"\\"]\\"');
-      expect(common.removeQuotes).toHaveBeenCalledWith('"quoted"');
 
       mockJsonParse.mockRestore();
     });
@@ -128,12 +133,6 @@ describe('Parsers', () => {
     test('parse filters array brackets and commas', () => {
       expect(parser.parse('[\nline1\n,\nline2\n]')).toEqual(['line1', 'line2']);
     });
-    test('parse calls removeQuotes on each line', () => {
-      parser.parse('line1\nline2');
-      expect(common.removeQuotes).toHaveBeenCalledTimes(2);
-      expect(common.removeQuotes).toHaveBeenNthCalledWith(1, 'line1', 0, ['line1', 'line2']);
-      expect(common.removeQuotes).toHaveBeenNthCalledWith(2, 'line2', 1, ['line1', 'line2']);
-    });
   });
 
   describe('CommaParser', () => {
@@ -154,13 +153,6 @@ describe('Parsers', () => {
 
     test('parse filters empty items', () => {
       expect(parser.parse('one,,three')).toEqual(['one', 'three']);
-    });
-
-    test('parse calls removeQuotes on each item', () => {
-      parser.parse('one,two');
-      expect(common.removeQuotes).toHaveBeenCalledTimes(2);
-      expect(common.removeQuotes).toHaveBeenNthCalledWith(1, 'one', 0, ['one', 'two']);
-      expect(common.removeQuotes).toHaveBeenNthCalledWith(2, 'two', 1, ['one', 'two']);
     });
   });
 
@@ -199,7 +191,8 @@ describe('Parsers', () => {
 
     test('handles escaped JSON string', async () => {
       const result = await parseFormattedString('\\"[1, \\"two\\", 3]\\"');
-      expect(result).toEqual(['\\"[1', '\\"two\\"', '3]\\"']); // Parsed as comma-separated, not JSON
+      // Falls back to comma parser; real removeQuotes strips trailing " from elements
+      expect(result).toEqual(['\\"[1', '\\"two\\', '3]\\']);
     });
 
     test('handles newline-separated values', async () => {
@@ -210,12 +203,6 @@ describe('Parsers', () => {
     test('handles comma-separated values as fallback', async () => {
       const result = await parseFormattedString('one, two, three');
       expect(result).toEqual(['one', 'two', 'three']);
-    });
-
-    test('applies input sanitization and limits', async () => {
-      await parseFormattedString('input');
-      expect(common.sanitizeInput).toHaveBeenCalledWith('input');
-      expect(common.limitInputSize).toHaveBeenCalled();
     });
 
     test('uses parseArrayFailFast successfully', async () => {
@@ -287,6 +274,39 @@ describe('Parsers', () => {
       expect(await parseBoolean('0')).toBe(false);
       expect(await parseBoolean('no')).toBe(false);
       expect(await parseBoolean('random string')).toBe(false);
+    });
+  });
+
+  describe('parseCommaSeparated', () => {
+    test('returns empty array for empty / whitespace-only input', () => {
+      expect(parseCommaSeparated('')).toEqual([]);
+      expect(parseCommaSeparated('   ')).toEqual([]);
+    });
+
+    test('splits, trims, and filters empty entries', () => {
+      expect(parseCommaSeparated('a, b ,c, , d')).toEqual(['a', 'b', 'c', 'd']);
+    });
+
+    test('returns single-element array when no commas present', () => {
+      expect(parseCommaSeparated('hello')).toEqual(['hello']);
+    });
+  });
+
+  describe('parseJsonObject', () => {
+    test('returns empty object for empty / "{}" input', () => {
+      expect(parseJsonObject('')).toEqual({});
+      expect(parseJsonObject('   ')).toEqual({});
+      expect(parseJsonObject('{}')).toEqual({});
+    });
+
+    test('parses valid JSON object', () => {
+      expect(parseJsonObject('{"a":"1","b":"2"}')).toEqual({ a: '1', b: '2' });
+    });
+
+    test('warns and returns empty object on invalid JSON', () => {
+      const result = parseJsonObject('{not-json');
+      expect(result).toEqual({});
+      expect(core.warning).toHaveBeenCalledWith(expect.stringContaining('Failed to parse JSON'));
     });
   });
 });

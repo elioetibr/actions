@@ -1,4 +1,4 @@
-import { WebhookPayload } from '@actions/github/lib/interfaces';
+import { WebhookPayload } from '../interfaces';
 import { IGitHubContext, IGitHubIssue, IGitHubRepository } from '../interfaces';
 
 export interface IGitHubContextBuilder extends IGitHubContext {
@@ -121,6 +121,8 @@ export class GitHubContextBuilder implements IGitHubContextBuilder {
   isTag: boolean = false;
   refName: string = '';
   shaShort: string = '';
+
+  constructor() {}
 
   /**
    * Sets the webhook payload

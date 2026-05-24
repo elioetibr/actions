@@ -45,23 +45,27 @@ describe('ValidationUtils', () => {
     });
 
     it('should throw for null with default field name', () => {
-      expect(() => ValidationUtils.validateStringInput(null as any))
-        .toThrow('Input cannot be null or undefined');
+      expect(() => ValidationUtils.validateStringInput(null as any)).toThrow(
+        'Input cannot be null or undefined',
+      );
     });
 
     it('should throw for undefined with default field name', () => {
-      expect(() => ValidationUtils.validateStringInput(undefined as any))
-        .toThrow('Input cannot be null or undefined');
+      expect(() => ValidationUtils.validateStringInput(undefined as any)).toThrow(
+        'Input cannot be null or undefined',
+      );
     });
 
     it('should throw for null with custom field name', () => {
-      expect(() => ValidationUtils.validateStringInput(null as any, 'CustomField'))
-        .toThrow('CustomField cannot be null or undefined');
+      expect(() => ValidationUtils.validateStringInput(null as any, 'CustomField')).toThrow(
+        'CustomField cannot be null or undefined',
+      );
     });
 
     it('should throw for undefined with custom field name', () => {
-      expect(() => ValidationUtils.validateStringInput(undefined as any, 'CustomField'))
-        .toThrow('CustomField cannot be null or undefined');
+      expect(() => ValidationUtils.validateStringInput(undefined as any, 'CustomField')).toThrow(
+        'CustomField cannot be null or undefined',
+      );
     });
   });
 
@@ -79,28 +83,33 @@ describe('ValidationUtils', () => {
     });
 
     it('should throw for null key', () => {
-      expect(() => ValidationUtils.validateMetaDataInput(null as any, 'value'))
-        .toThrow('Metadata key cannot be null or undefined');
+      expect(() => ValidationUtils.validateMetaDataInput(null as any, 'value')).toThrow(
+        'Metadata key cannot be null or undefined',
+      );
     });
 
     it('should throw for undefined key', () => {
-      expect(() => ValidationUtils.validateMetaDataInput(undefined as any, 'value'))
-        .toThrow('Metadata key cannot be null or undefined');
+      expect(() => ValidationUtils.validateMetaDataInput(undefined as any, 'value')).toThrow(
+        'Metadata key cannot be null or undefined',
+      );
     });
 
     it('should throw for null value', () => {
-      expect(() => ValidationUtils.validateMetaDataInput('key', null as any))
-        .toThrow('Metadata value cannot be null or undefined');
+      expect(() => ValidationUtils.validateMetaDataInput('key', null as any)).toThrow(
+        'Metadata value cannot be null or undefined',
+      );
     });
 
     it('should throw for undefined value', () => {
-      expect(() => ValidationUtils.validateMetaDataInput('key', undefined as any))
-        .toThrow('Metadata value cannot be null or undefined');
+      expect(() => ValidationUtils.validateMetaDataInput('key', undefined as any)).toThrow(
+        'Metadata value cannot be null or undefined',
+      );
     });
 
     it('should throw for both null key and value', () => {
-      expect(() => ValidationUtils.validateMetaDataInput(null as any, null as any))
-        .toThrow('Metadata key cannot be null or undefined');
+      expect(() => ValidationUtils.validateMetaDataInput(null as any, null as any)).toThrow(
+        'Metadata key cannot be null or undefined',
+      );
     });
   });
 
@@ -114,23 +123,25 @@ describe('ValidationUtils', () => {
     });
 
     it('should throw for empty string', () => {
-      expect(() => ValidationUtils.validateCommand(''))
-        .toThrow('Command cannot be empty or null');
+      expect(() => ValidationUtils.validateCommand('')).toThrow('Command cannot be empty or null');
     });
 
     it('should throw for whitespace only string', () => {
-      expect(() => ValidationUtils.validateCommand('   '))
-        .toThrow('Command cannot be empty or null');
+      expect(() => ValidationUtils.validateCommand('   ')).toThrow(
+        'Command cannot be empty or null',
+      );
     });
 
     it('should throw for null', () => {
-      expect(() => ValidationUtils.validateCommand(null as any))
-        .toThrow('Command cannot be empty or null');
+      expect(() => ValidationUtils.validateCommand(null as any)).toThrow(
+        'Command cannot be empty or null',
+      );
     });
 
     it('should throw for undefined', () => {
-      expect(() => ValidationUtils.validateCommand(undefined as any))
-        .toThrow('Command cannot be empty or null');
+      expect(() => ValidationUtils.validateCommand(undefined as any)).toThrow(
+        'Command cannot be empty or null',
+      );
     });
   });
 });

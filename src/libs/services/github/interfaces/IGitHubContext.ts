@@ -1,7 +1,9 @@
-import { WebhookPayload } from '@actions/github/lib/interfaces';
+import type * as github from '@actions/github';
 
 import { IGitHubIssue } from './IGitHubIssue';
 import { IGitHubRepository } from './IGitHubRepository';
+
+export type WebhookPayload = (typeof github)['context']['payload'];
 
 export interface IGitHubContext {
   /**

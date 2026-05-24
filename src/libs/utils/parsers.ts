@@ -40,6 +40,8 @@ export function parseJsonObject(input: string): Record<string, string> {
  * Implements the IStringParser interface to handle JSON array formatted input.
  */
 export class JsonArrayParser implements IStringParser {
+  constructor() {}
+
   canParse(input: string): boolean {
     return /^\s*\[.*\]\s*$/.test(input);
   }
@@ -65,28 +67,23 @@ export class JsonArrayParser implements IStringParser {
  * Implements the IStringParser interface to handle escaped JSON formatted input.
  */
 export class EscapedJsonParser implements IStringParser {
+  constructor() {}
+
   canParse(input: string): boolean {
     return input.includes('\\"');
   }
 
   parse(input: string): string[] {
     try {
-      // First unescape the string
       const unescaped = JSON.parse(`"${input.replace(/^"|"$/g, '')}"`);
-
-      // If it's a JSON array string, parse it
-      if (typeof unescaped === 'string' && unescaped.startsWith('[') && unescaped.endsWith(']')) {
-        const parsed = JSON.parse(unescaped);
-
-        if (Array.isArray(parsed)) {
-          // Convert all items to strings and remove any quotes
-          return parsed.map(item => {
-            const str = String(item);
-            // Remove quotes and escaped quotes
-            return removeQuotes(str.replace(/\\"/g, '"'));
-          });
-        }
+      if (typeof unescaped !== 'string' || !unescaped.startsWith('[') || !unescaped.endsWith(']')) {
+        return [];
       }
+      const parsed = JSON.parse(unescaped);
+      if (!Array.isArray(parsed)) {
+        return [];
+      }
+      return parsed.map(item => removeQuotes(String(item).replace(/\\"/g, '"')));
     } catch {
       // Silent fail, will be handled by the fallback parser
     }
@@ -99,6 +96,8 @@ export class EscapedJsonParser implements IStringParser {
  * Implements the IStringParser interface to handle multi-line input.
  */
 export class NewlineParser implements IStringParser {
+  constructor() {}
+
   canParse(input: string): boolean {
     return input.includes('\n');
   }
@@ -117,6 +116,8 @@ export class NewlineParser implements IStringParser {
  * Implements the IStringParser interface as a fallback parser.
  */
 export class CommaParser implements IStringParser {
+  constructor() {}
+
   canParse(_input: string): boolean {
     return true; // This is our fallback parser
   }

@@ -1,7 +1,8 @@
 // main.ts
 import * as core from '@actions/core';
 import * as github from '@actions/github';
-import { Context } from '@actions/github/lib/context';
+
+type Context = typeof github.context;
 import { handleError } from '../../utils';
 import { IServiceContainer, createServices } from '../ServiceBuilder';
 

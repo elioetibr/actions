@@ -1,7 +1,13 @@
 import { SemanticVersionFactory } from './SemanticVersionBuilderFactory';
 import { SemanticVersionBuilder } from './SemanticVersionBuilder';
 
-jest.mock('./SemanticVersionBuilder');
+jest.mock('./SemanticVersionBuilder', () => {
+  const ctor = jest.fn();
+  ctor.create = jest.fn();
+  ctor.fromVersion = jest.fn();
+  ctor.fromProvider = jest.fn();
+  return { SemanticVersionBuilder: ctor };
+});
 
 describe('SemanticVersionFactory', () => {
   let mockBuilder: {

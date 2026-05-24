@@ -1,18 +1,20 @@
-import { Context } from '@actions/github/lib/context';
-import { 
-  GitHubContextBuilderFactory, 
-  createGitHubBuilder, 
-  createGitHubBuilderFromContext 
+import type * as github from '@actions/github';
+
+type Context = typeof github.context;
+import {
+  GitHubContextBuilderFactory,
+  createGitHubBuilder,
+  createGitHubBuilderFromContext,
 } from './GitHubContextBuilderFactory';
 import { GitHubContextBuilder } from './GitHubContextBuilder';
 
 describe('GitHubContextBuilderFactory', () => {
   const createMockContext = (overrides: Partial<Context> = {}): Context => {
     return {
-      payload: { 
+      payload: {
         repository: { default_branch: 'main' },
         action: 'opened',
-        number: 123 
+        number: 123,
       },
       eventName: 'pull_request',
       sha: 'abcdef1234567890abcdef1234567890abcdef12',
@@ -189,13 +191,15 @@ describe('GitHubContextBuilderFactory', () => {
     });
 
     test('throws error when context is null', () => {
-      expect(() => GitHubContextBuilderFactory.createFromContext(null as any))
-        .toThrow('GitHub context is required');
+      expect(() => GitHubContextBuilderFactory.createFromContext(null as any)).toThrow(
+        'GitHub context is required',
+      );
     });
 
     test('throws error when context is undefined', () => {
-      expect(() => GitHubContextBuilderFactory.createFromContext(undefined as any))
-        .toThrow('GitHub context is required');
+      expect(() => GitHubContextBuilderFactory.createFromContext(undefined as any)).toThrow(
+        'GitHub context is required',
+      );
     });
 
     test('handles empty payload correctly', () => {
@@ -248,19 +252,20 @@ describe('GitHubContextBuilderFactory', () => {
     });
 
     test('throws error for null context', () => {
-      expect(() => createGitHubBuilderFromContext(null as any))
-        .toThrow('GitHub context is required');
+      expect(() => createGitHubBuilderFromContext(null as any)).toThrow(
+        'GitHub context is required',
+      );
     });
   });
 
   describe('integration tests', () => {
     test('factory methods work together correctly', () => {
       const mockContext = createMockContext();
-      
+
       // Create from context
       const builderFromContext = createGitHubBuilderFromContext(mockContext);
       const contextFromFactory = builderFromContext.build();
-      
+
       // Create empty and populate manually
       const emptyBuilder = createGitHubBuilder();
       const manualContext = emptyBuilder
@@ -285,10 +290,10 @@ describe('GitHubContextBuilderFactory', () => {
           repository: {
             default_branch: 'main',
             name: 'my-repo',
-            owner: { login: 'my-org' }
+            owner: { login: 'my-org' },
           },
-          pusher: { name: 'developer' }
-        }
+          pusher: { name: 'developer' },
+        },
       });
 
       const builder = createGitHubBuilderFromContext(realWorldContext);

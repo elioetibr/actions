@@ -17,8 +17,14 @@ import { MAX_INPUT_SIZE } from './constants';
 // Mock dependencies
 jest.mock('@actions/core');
 jest.mock('@docker/actions-toolkit/lib/exec');
-jest.mock('./handlers');
-jest.mock('./parsers');
+jest.mock('./handlers', () => ({ handleError: jest.fn(), handleSuccess: jest.fn() }));
+jest.mock('./parsers', () => ({
+  parseFormattedString: jest.fn(),
+  parseCommaSeparated: jest.fn(),
+  parseBoolean: jest.fn(),
+  parseJsonObject: jest.fn(),
+  parseJsonToObject: jest.fn(),
+}));
 
 describe('common utils', () => {
   beforeEach(() => {

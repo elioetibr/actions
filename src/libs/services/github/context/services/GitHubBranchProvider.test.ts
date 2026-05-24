@@ -40,11 +40,15 @@ describe('GitHubBranchProvider', () => {
     });
 
     test('throws error when context service is null', () => {
-      expect(() => new GitHubBranchProvider(null as any)).toThrow('GitHub context service is required');
+      expect(() => new GitHubBranchProvider(null as any)).toThrow(
+        'GitHub context service is required',
+      );
     });
 
     test('throws error when context service is undefined', () => {
-      expect(() => new GitHubBranchProvider(undefined as any)).toThrow('GitHub context service is required');
+      expect(() => new GitHubBranchProvider(undefined as any)).toThrow(
+        'GitHub context service is required',
+      );
     });
   });
 
@@ -86,7 +90,9 @@ describe('GitHubBranchProvider', () => {
     });
 
     test('throws error for null context service', () => {
-      expect(() => createGitHubBranchProvider(null as any)).toThrow('GitHub context service is required');
+      expect(() => createGitHubBranchProvider(null as any)).toThrow(
+        'GitHub context service is required',
+      );
     });
 
     test('creates provider with false default branch status', () => {
@@ -100,11 +106,11 @@ describe('GitHubBranchProvider', () => {
   describe('integration with context service', () => {
     test('properly delegates to context service', () => {
       const mockContextService = createMockContextService(true);
-      
+
       const provider = new GitHubBranchProvider(mockContextService);
-      
+
       const result = provider.isDefaultBranch;
-      
+
       expect(result).toBe(true);
       expect(result).toBe(mockContextService.context.isDefaultBranch);
     });

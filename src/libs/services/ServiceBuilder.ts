@@ -1,5 +1,6 @@
 import * as github from '@actions/github';
-import { Context } from '@actions/github/lib/context';
+
+type Context = typeof github.context;
 import { createGitHubContextService } from './github/context/services';
 import { IGitHubContextService } from './github';
 import { ISemanticVersionService } from './version';

@@ -1,19 +1,17 @@
 import * as core from '@actions/core';
 import * as github from '@actions/github';
-import { Context } from '@actions/github/lib/context';
+
+type Context = typeof github.context;
 import { ActionRunner, run } from './main';
 import { IServiceContainer, createServices } from '../ServiceBuilder';
 import { handleError, handleSuccess } from '../../utils';
 
 // Mock the dependencies
-jest.mock('@actions/core');
-jest.mock('@actions/github');
-jest.mock('../../utils');
-jest.mock('../ServiceBuilder');
+jest.mock('../../utils', () => ({ handleError: jest.fn(), handleSuccess: jest.fn() }));
+jest.mock('../ServiceBuilder', () => ({ createServices: jest.fn() }));
 
 describe('ActionRunner', () => {
   let mockServices: jest.Mocked<IServiceContainer>;
-  let mockCore: jest.Mocked<typeof core>;
   let mockHandleError: jest.MockedFunction<typeof handleError>;
 
   beforeEach(() => {
@@ -43,9 +41,8 @@ describe('ActionRunner', () => {
       },
     } as jest.Mocked<IServiceContainer>;
 
-    mockCore = core as jest.Mocked<typeof core>;
-    mockCore.info = jest.fn();
-    mockCore.isDebug = jest.fn().mockReturnValue(true);
+    (core.info as ReturnType<typeof jest.fn>).mockReset();
+    (core.isDebug as ReturnType<typeof jest.fn>).mockReturnValue(true);
 
     mockHandleError = handleError as jest.MockedFunction<typeof handleError>;
   });
@@ -67,15 +64,15 @@ describe('ActionRunner', () => {
 
       await runner.run();
 
-      expect(mockCore.info).toHaveBeenCalledWith('⭐ Starting Action Runner...');
-      expect(mockCore.info).toHaveBeenCalledWith('❓ Debug is Enabled: true');
-      expect(mockCore.info).toHaveBeenCalledWith(expect.stringContaining('❓ Debug is Enabled:'));
-      expect(mockCore.isDebug).toHaveBeenCalled();
+      expect(core.info).toHaveBeenCalledWith('⭐ Starting Action Runner...');
+      expect(core.info).toHaveBeenCalledWith('❓ Debug is Enabled: true');
+      expect(core.info).toHaveBeenCalledWith(expect.stringContaining('❓ Debug is Enabled:'));
+      expect(core.isDebug).toHaveBeenCalled();
     });
 
     it('should handle errors and call handleError', async () => {
       const error = new Error('Test error');
-      mockCore.info = jest.fn().mockImplementation(() => {
+      (core.info as ReturnType<typeof jest.fn>).mockImplementation(() => {
         throw error;
       });
 
@@ -91,7 +88,7 @@ describe('ActionRunner', () => {
 
       await runner.run();
 
-      expect(mockCore.info).toHaveBeenCalledWith(
+      expect(core.info).toHaveBeenCalledWith(
         expect.stringMatching(/❓ Debug is Enabled: \{[\s\S]*\}/),
       );
     });
@@ -138,9 +135,8 @@ describe('run function', () => {
     mockCreateServices = jest.fn().mockReturnValue(mockServices);
     jest.mocked(createServices).mockImplementation(mockCreateServices);
 
-    const mockCore = core as jest.Mocked<typeof core>;
-    mockCore.info = jest.fn();
-    mockCore.isDebug = jest.fn().mockReturnValue(false);
+    (core.info as ReturnType<typeof jest.fn>).mockReset();
+    (core.isDebug as ReturnType<typeof jest.fn>).mockReturnValue(false);
   });
 
   afterEach(() => {
@@ -148,12 +144,10 @@ describe('run function', () => {
   });
 
   it('should use default github.context when no context provided', async () => {
-    const mockGithubContext = { ref: 'refs/heads/default', sha: 'default123' };
-    (github as any).context = mockGithubContext;
-
     await run();
 
-    expect(mockCreateServices).toHaveBeenCalledWith(mockGithubContext);
+    // Verify createServices was called with github.context (the preload default)
+    expect(mockCreateServices).toHaveBeenCalledWith(github.context);
   });
 
   it('should use provided context when given', async () => {
@@ -169,13 +163,9 @@ describe('run function', () => {
   });
 
   it('should create and run ActionRunner with services', async () => {
-    const mockCore = core as jest.Mocked<typeof core>;
-    mockCore.info = jest.fn();
-    mockCore.isDebug = jest.fn().mockReturnValue(false);
-
     await run(mockContext, mockServices);
 
-    expect(mockCore.info).toHaveBeenCalledWith('⭐ Starting Action Runner...');
+    expect(core.info).toHaveBeenCalledWith('⭐ Starting Action Runner...');
   });
 });
 

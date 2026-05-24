@@ -91,6 +91,8 @@ export class TerragruntVersionResolver extends BaseVersionResolver {
  * available, with a fallback to $HOME/.tool-versions for local development.
  */
 export class TerragruntVersionInstaller implements IVersionInstaller {
+  constructor() {}
+
   async isInstalled(version: string): Promise<boolean> {
     const dir = getCacheDir('terragrunt', version);
     const binaryName = getPlatform().os === 'windows' ? 'terragrunt.exe' : 'terragrunt';
