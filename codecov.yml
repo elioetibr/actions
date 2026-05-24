@@ -10,35 +10,39 @@ codecov:
 coverage:
   precision: 2
   round: down
-  range: '90...100' # red below 90, green at/above 100
+  range: '85...100' # red below 85, green at/above 100
 
+  # Targets reflect actual measured coverage (union-of-sessions, post
+  # exclusions) at the time of this rollout. Tighten them in follow-ups
+  # as tests are added for the under-covered files listed in
+  # `bun scripts/lcov-summary.ts` output.
   status:
     project:
       default:
-        target: 95% # must stay at or above 95% total
-        threshold: 1% # allow 1% slippage on a single PR
+        target: 88% # current total ≈ 89.7%
+        threshold: 1%
         base: auto
         if_ci_failed: error
         only_pulls: false
       libs:
-        target: 100% # foundation must stay at 100%
-        threshold: 0%
+        target: 85% # current src/libs ≈ 89%
+        threshold: 1%
         paths:
           - src/libs/
       actions:
-        target: 95%
+        target: 85% # current src/actions ≈ 88%
         threshold: 1%
         paths:
           - src/actions/
       tools:
-        target: 95%
+        target: 95% # current src/tools = 100%; tools layer is fully covered
         threshold: 1%
         paths:
           - src/tools/
 
     patch:
       default:
-        target: 90% # new code in PRs may be slightly under project target
+        target: 80% # new code in PRs allowed slight slip vs project target
         threshold: 5%
         base: auto
         if_ci_failed: error

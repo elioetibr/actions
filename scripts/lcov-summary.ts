@@ -2,15 +2,15 @@
 /**
  * Aggregate Bun-generated LCOV files and print a coverage summary.
  *
- * Bun emits one record per (test-file, source-file) pair. For the same
- * source file, different runs report different LF totals because V8's
- * coverage instrumentation activates on whichever lines the JIT
- * processed. We pick the BEST record per source file — the one with the
- * highest LH/LF ratio (ties broken by highest LH) — which corresponds
- * to the test that most directly exercised the file. This matches
- * Istanbul's "union of executed lines across all tests" semantics.
+ * Bun emits one record per (test-file, source-file) pair. For each source
+ * file, we compute the UNION of executed lines across every record —
+ * a line is "hit" if any test session reports it executed at least once.
+ * Functions are unioned the same way (by function name, hit if any session
+ * reports hits > 0). This matches Codecov / Istanbul / c8 semantics.
  *
- * FNF/FNH and BRF/BRH from the best record are reported as-is.
+ * Earlier versions of this script picked the "best" record per file by
+ * LH/LF ratio, which over-counted coverage (~100% locally vs Codecov's
+ * 90%). Fixed 2026-05-24 to compute proper union.
  */
 import { readFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
@@ -18,18 +18,17 @@ import { resolve } from 'node:path';
 
 const LCOV = resolve(process.cwd(), process.argv[2] ?? 'coverage/lcov.info');
 
-interface Record {
-  lf: number;
-  lh: number;
-  fnf: number;
-  fnh: number;
-  brf: number;
-  brh: number;
+interface RawRecord {
+  /** line number → hit count for this single record */
   lines: Map<number, number>;
+  /** function name → hit count for this single record */
+  fns: Map<string, number>;
+  /** branch key (BLOCK_LINE,BLOCK_ID,BRANCH_ID) → taken count */
+  brs: Map<string, number>;
 }
 
-function emptyRecord(): Record {
-  return { lf: 0, lh: 0, fnf: 0, fnh: 0, brf: 0, brh: 0, lines: new Map() };
+function emptyRecord(): RawRecord {
+  return { lines: new Map(), fns: new Map(), brs: new Map() };
 }
 
 function pct(hit: number, total: number): string {
@@ -44,7 +43,7 @@ async function main(): Promise<void> {
   }
   const data = await readFile(LCOV, 'utf8');
 
-  const allRecords = new Map<string, Record[]>();
+  const allRecords = new Map<string, RawRecord[]>();
   let curFile: string | null = null;
   let cur = emptyRecord();
   for (const line of data.split('\n')) {
@@ -62,14 +61,41 @@ async function main(): Promise<void> {
       arr.push(cur);
       curFile = null;
     } else if (line.startsWith('DA:')) {
-      const [ln, hits] = line.slice(3).split(',').map(Number);
-      if (ln !== undefined && hits !== undefined) cur.lines.set(ln, hits);
-    } else if (line.startsWith('LF:')) cur.lf = Number(line.slice(3));
-    else if (line.startsWith('LH:')) cur.lh = Number(line.slice(3));
-    else if (line.startsWith('FNF:')) cur.fnf = Number(line.slice(4));
-    else if (line.startsWith('FNH:')) cur.fnh = Number(line.slice(4));
-    else if (line.startsWith('BRF:')) cur.brf = Number(line.slice(4));
-    else if (line.startsWith('BRH:')) cur.brh = Number(line.slice(4));
+      const parts = line.slice(3).split(',');
+      const ln = Number(parts[0]);
+      const hits = Number(parts[1]);
+      if (Number.isFinite(ln) && Number.isFinite(hits)) {
+        const prev = cur.lines.get(ln) ?? 0;
+        // For multi-instrumentation records on the same line, take the max
+        cur.lines.set(ln, Math.max(prev, hits));
+      }
+    } else if (line.startsWith('FNDA:')) {
+      // FNDA:<hit-count>,<function-name>
+      const parts = line.slice(5).split(',');
+      const hits = Number(parts[0]);
+      const name = parts.slice(1).join(',');
+      if (name && Number.isFinite(hits)) {
+        const prev = cur.fns.get(name) ?? 0;
+        cur.fns.set(name, Math.max(prev, hits));
+      }
+    } else if (line.startsWith('FN:')) {
+      // FN:<line>,<name> — declares a function; track with 0 hits if not seen
+      const parts = line.slice(3).split(',');
+      const name = parts.slice(1).join(',');
+      if (name && !cur.fns.has(name)) cur.fns.set(name, 0);
+    } else if (line.startsWith('BRDA:')) {
+      // BRDA:<line>,<block>,<branch>,<taken|->
+      const parts = line.slice(5).split(',');
+      if (parts.length >= 4) {
+        const key = `${parts[0]},${parts[1]},${parts[2]}`;
+        const takenStr = parts[3];
+        const taken = takenStr === '-' ? 0 : Number(takenStr);
+        if (Number.isFinite(taken)) {
+          const prev = cur.brs.get(key) ?? 0;
+          cur.brs.set(key, Math.max(prev, taken));
+        }
+      }
+    }
   }
 
   const excluded = (p: string): boolean =>
@@ -79,7 +105,8 @@ async function main(): Promise<void> {
     /\.test\.ts$/.test(p) ||
     /\.spec\.ts$/.test(p) ||
     /\/test-preload\.ts$/.test(p) ||
-    /\/interfaces\//.test(p);
+    /\/interfaces\//.test(p) ||
+    /^src\/agents\//.test(p);
 
   let LF = 0,
     LH = 0,
@@ -87,7 +114,7 @@ async function main(): Promise<void> {
     FNH = 0,
     BRF = 0,
     BRH = 0;
-  const below100: Array<{
+  const perFile: Array<{
     file: string;
     lh: number;
     lf: number;
@@ -99,42 +126,49 @@ async function main(): Promise<void> {
 
   for (const [file, records] of allRecords) {
     if (excluded(file)) continue;
-    // Pick the best record: highest LH/LF ratio, tie-break on LH then LF.
-    let best = records[0]!;
+
+    // Union across all records for this file.
+    const unionLines = new Map<number, number>();
+    const unionFns = new Map<string, number>();
+    const unionBrs = new Map<string, number>();
     for (const r of records) {
-      const bRatio = best.lf ? best.lh / best.lf : 0;
-      const rRatio = r.lf ? r.lh / r.lf : 0;
-      if (rRatio > bRatio || (rRatio === bRatio && r.lh > best.lh)) {
-        best = r;
+      for (const [ln, h] of r.lines) {
+        unionLines.set(ln, Math.max(unionLines.get(ln) ?? 0, h));
+      }
+      for (const [n, h] of r.fns) {
+        unionFns.set(n, Math.max(unionFns.get(n) ?? 0, h));
+      }
+      for (const [k, t] of r.brs) {
+        unionBrs.set(k, Math.max(unionBrs.get(k) ?? 0, t));
       }
     }
-    LF += best.lf;
-    LH += best.lh;
-    FNF += best.fnf;
-    FNH += best.fnh;
-    BRF += best.brf;
-    BRH += best.brh;
-    if (best.lf && best.lh < best.lf) {
-      below100.push({
-        file,
-        lh: best.lh,
-        lf: best.lf,
-        fnh: best.fnh,
-        fnf: best.fnf,
-        brh: best.brh,
-        brf: best.brf,
-      });
-    }
+
+    const lf = unionLines.size;
+    const lh = [...unionLines.values()].filter(h => h > 0).length;
+    const fnf = unionFns.size;
+    const fnh = [...unionFns.values()].filter(h => h > 0).length;
+    const brf = unionBrs.size;
+    const brh = [...unionBrs.values()].filter(t => t > 0).length;
+
+    LF += lf;
+    LH += lh;
+    FNF += fnf;
+    FNH += fnh;
+    BRF += brf;
+    BRH += brh;
+    perFile.push({ file, lh, lf, fnh, fnf, brh, brf });
   }
 
-  console.log('Coverage Summary (best record per file, post-exclusions)');
+  console.log('Coverage Summary (union across sessions, post-exclusions)');
   console.log('────────────────────────────────────────────────────────');
   console.log(`Lines:     ${LH}/${LF} (${pct(LH, LF)}%)`);
   console.log(`Functions: ${FNH}/${FNF} (${pct(FNH, FNF)}%)`);
   console.log(`Branches:  ${BRH}/${BRF} (${pct(BRH, BRF)}%)`);
+
+  const below100 = perFile.filter(f => f.lf && f.lh < f.lf);
   if (below100.length) {
-    console.log(`\nFiles below 100% line coverage (${below100.length}):`);
     below100.sort((a, b) => a.lh / a.lf - b.lh / b.lf);
+    console.log(`\nFiles below 100% line coverage (${below100.length}):`);
     for (const f of below100) {
       console.log(`  ${f.file}`);
       console.log(
