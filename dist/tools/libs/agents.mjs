@@ -15983,7 +15983,7 @@ var Summary = class {
 };
 var summary = new Summary();
 //#endregion
-//#region node_modules/.pnpm/@actions+io@3.0.2/node_modules/@actions/io/lib/io-util.js
+//#region node_modules/@actions/io/lib/io-util.js
 var __awaiter$5 = function(thisArg, _arguments, P, generator) {
 	function adopt(value) {
 		return value instanceof P ? value : new P(function(resolve) {
@@ -16095,7 +16095,7 @@ function isUnixExecutable(stats) {
 	return (stats.mode & 1) > 0 || (stats.mode & 8) > 0 && process.getgid !== void 0 && stats.gid === process.getgid() || (stats.mode & 64) > 0 && process.getuid !== void 0 && stats.uid === process.getuid();
 }
 //#endregion
-//#region node_modules/.pnpm/@actions+io@3.0.2/node_modules/@actions/io/lib/io.js
+//#region node_modules/@actions/io/lib/io.js
 var __awaiter$4 = function(thisArg, _arguments, P, generator) {
 	function adopt(value) {
 		return value instanceof P ? value : new P(function(resolve) {
@@ -16176,7 +16176,7 @@ function findInPath(tool) {
 	});
 }
 //#endregion
-//#region node_modules/.pnpm/@actions+exec@3.0.0/node_modules/@actions/exec/lib/toolrunner.js
+//#region node_modules/@actions/exec/lib/toolrunner.js
 var __awaiter$3 = function(thisArg, _arguments, P, generator) {
 	function adopt(value) {
 		return value instanceof P ? value : new P(function(resolve) {
@@ -16533,7 +16533,7 @@ var ExecState = class ExecState extends events.EventEmitter {
 	}
 };
 //#endregion
-//#region node_modules/.pnpm/@actions+exec@3.0.0/node_modules/@actions/exec/lib/exec.js
+//#region node_modules/@actions/exec/lib/exec.js
 var __awaiter$2 = function(thisArg, _arguments, P, generator) {
 	function adopt(value) {
 		return value instanceof P ? value : new P(function(resolve) {

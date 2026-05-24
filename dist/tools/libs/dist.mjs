@@ -1,8 +1,8 @@
 import "crypto";
-//#region node_modules/.pnpm/@linear+sdk@81.0.0_graphql@16.13.1/node_modules/@linear/sdk/dist/chunk-DPPnyiuk.mjs
+//#region node_modules/@linear/sdk/dist/chunk-DPPnyiuk.mjs
 var __commonJSMin = (cb, mod) => () => (mod || cb((mod = { exports: {} }).exports, mod), mod.exports);
 //#endregion
-//#region node_modules/.pnpm/@linear+sdk@81.0.0_graphql@16.13.1/node_modules/@linear/sdk/dist/index.mjs
+//#region node_modules/@linear/sdk/dist/index.mjs
 /**
 * The error types returned by the Linear API
 */
